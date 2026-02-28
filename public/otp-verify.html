@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify OTP – SecureReg</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<div class="otp-page">
+  <div class="otp-card">
+
+    <!-- Logo -->
+    <div class="otp-logo">
+      <span>🔒</span>
+      <span class="logo-text">SecureReg</span>
+    </div>
+
+    <!-- Icon + title -->
+    <div class="otp-icon-wrap">
+      <div class="otp-icon">✉️</div>
+    </div>
+    <h2 class="otp-title">Check Your Email</h2>
+    <p class="otp-subtitle">
+      We sent a 6-digit verification code to<br>
+      <strong id="displayEmail">your email address</strong>
+    </p>
+
+    <!-- Alert -->
+    <div id="alertContainer" class="alert-container hidden"></div>
+
+    <!-- ── OTP input boxes ── -->
+    <form id="otpForm" novalidate>
+      <div class="otp-inputs" id="otpInputs">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" data-index="0" autocomplete="off">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" data-index="1" autocomplete="off">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" data-index="2" autocomplete="off">
+        <span class="otp-sep">—</span>
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" data-index="3" autocomplete="off">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" data-index="4" autocomplete="off">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" data-index="5" autocomplete="off">
+      </div>
+      <span class="form-error text-center" id="otpError" style="display:block;text-align:center;margin-bottom:8px"></span>
+
+      <!-- ── Countdown timer ── -->
+      <div class="otp-timer-wrap">
+        <div class="otp-timer-ring">
+          <svg viewBox="0 0 56 56" width="56" height="56">
+            <circle class="ring-bg" cx="28" cy="28" r="24"/>
+            <circle class="ring-fill" id="timerRing" cx="28" cy="28" r="24"
+                    stroke-dasharray="150.8" stroke-dashoffset="0"/>
+          </svg>
+          <span class="ring-label" id="timerLabel">5:00</span>
+        </div>
+        <p id="timerText" class="otp-timer-text">Code expires in <strong id="timerDisplay">5:00</strong></p>
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" id="verifyBtn" class="btn btn-primary btn-full">
+        <span id="verifyBtnText">Verify OTP</span>
+        <span id="verifyBtnLoader" class="hidden"><span class="spinner"></span> Verifying…</span>
+      </button>
+    </form>
+
+    <hr class="divider">
+
+    <!-- Resend -->
+    <div class="otp-resend">
+      <p>Didn't receive the code?</p>
+      <button id="resendBtn" class="btn btn-secondary" onclick="resendOTP()" disabled>
+        <span id="resendBtnText">Resend OTP</span>
+      </button>
+      <p id="resendCooldown" class="text-muted hidden">
+        Resend available in <strong id="resendTimer">60</strong>s
+      </p>
+      <p id="resendLimit" class="text-muted hidden" style="color:#e74c3c">
+        ⚠️ Maximum resend attempts reached. Please wait 15 minutes.
+      </p>
+    </div>
+
+    <div class="auth-footer" style="margin-top:20px">
+      <a href="/" class="link">← Back to Register</a>
+    </div>
+  </div>
+</div>
+
+<script src="/js/otp-verify.js"></script>
+</body>
+</html>

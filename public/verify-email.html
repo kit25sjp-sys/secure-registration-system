@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Email – SecureReg</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="verify-page">
+
+  <div class="verify-card" id="verifyCard">
+    <div class="verify-icon" id="verifyIcon">⏳</div>
+    <h2 id="verifyTitle">Verifying your email…</h2>
+    <p id="verifyMsg">Please wait while we confirm your email address.</p>
+    <div id="verifyActions"></div>
+  </div>
+
+  <script>
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const token  = params.get('token');
+
+      const icon    = document.getElementById('verifyIcon');
+      const title   = document.getElementById('verifyTitle');
+      const msg     = document.getElementById('verifyMsg');
+      const actions = document.getElementById('verifyActions');
+
+      if (!token) {
+        icon.textContent  = '❌';
+        title.textContent = 'No token provided';
+        msg.textContent   = 'The verification link appears to be incomplete or invalid.';
+        actions.innerHTML = '<a href="/" class="btn btn-primary" style="text-decoration:none">Go to Register</a>';
+        return;
+      }
+
+      try {
+        const resp = await fetch('/api/auth/verify-email?token=' + encodeURIComponent(token));
+        const data = await resp.json();
+
+        if (data.success) {
+          icon.textContent  = '✅';
+          title.textContent = 'Email Verified!';
+          title.style.color = '#27ae60';
+          msg.textContent   = data.message;
+          actions.innerHTML = '<a href="/login" class="btn btn-primary" style="text-decoration:none;margin-top:8px">Sign In Now →</a>';
+        } else {
+          icon.textContent  = '❌';
+          title.textContent = 'Verification Failed';
+          title.style.color = '#e74c3c';
+          msg.textContent   = data.message;
+          actions.innerHTML = '<a href="/" class="btn btn-primary" style="text-decoration:none;margin-top:8px">Register Again</a>';
+        }
+      } catch {
+        icon.textContent  = '⚠️';
+        title.textContent = 'Network Error';
+        msg.textContent   = 'Could not reach the server. Please check your connection and try again.';
+        actions.innerHTML = `<button onclick="location.reload()" class="btn btn-primary">Retry</button>`;
+      }
+    })();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register – SecureReg</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="top-nav-logo">
+    <span>&#128274;</span>
+    <span>SecureReg</span>
+  </div>
+  <div class="top-nav-links">
+    <a href="/" class="nav-link nav-link-active">&#128221; Register</a>
+    <a href="/login" class="nav-link">&#128274; Login</a>
+    <a href="/admin" class="nav-link nav-link-admin">&#9881;&#65039; Admin</a>
+  </div>
+</nav>
+
+<div class="page-wrapper">
+
+  <!-- ═══ LEFT: Registration Form ════════════════════════ -->
+  <div class="auth-container">
+
+    <div class="auth-header">
+      <div class="logo">
+        <span class="logo-icon">🔒</span>
+        <span class="logo-text">SecureReg</span>
+      </div>
+      <h1 class="auth-title">Create Account</h1>
+      <p class="auth-subtitle">Join our secure platform today</p>
+    </div>
+
+    <div id="alertContainer" class="alert-container hidden"></div>
+
+    <form id="registrationForm" class="auth-form" novalidate autocomplete="off">
+
+      <!-- Username -->
+      <div class="form-group">
+        <label for="usernameInput" class="form-label">
+          <span class="label-icon">👤</span> Username
+        </label>
+        <div class="input-wrapper">
+          <input type="text" id="usernameInput" class="form-input"
+                 placeholder="e.g. john_doe_99"
+                 maxlength="30" autocomplete="username" required>
+          <span class="input-status" id="usernameStatus"></span>
+        </div>
+        <span class="form-hint">3–30 characters · letters, numbers, underscores</span>
+        <span class="form-error" id="usernameError"></span>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label for="emailInput" class="form-label">
+          <span class="label-icon">✉️</span> Email Address
+        </label>
+        <div class="input-wrapper">
+          <input type="email" id="emailInput" class="form-input"
+                 placeholder="you@example.com"
+                 autocomplete="email" required>
+          <span class="input-status" id="emailStatus"></span>
+        </div>
+        <span class="form-error" id="emailError"></span>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label for="passwordInput" class="form-label">
+          <span class="label-icon">🔑</span> Password
+        </label>
+        <div class="input-wrapper">
+          <input type="password" id="passwordInput" class="form-input"
+                 placeholder="Create a strong password"
+                 autocomplete="new-password" required>
+          <button type="button" class="toggle-password"
+                  onclick="togglePassword('passwordInput')" title="Toggle visibility">
+            <span id="passwordInputEye">👁️</span>
+          </button>
+        </div>
+        <span class="form-error" id="passwordError"></span>
+
+        <!-- ── Graphical strength meter ── -->
+        <div class="strength-meter-container" id="strengthMeterContainer">
+          <div class="strength-bar-wrapper">
+            <div class="strength-segment" id="seg1"></div>
+            <div class="strength-segment" id="seg2"></div>
+            <div class="strength-segment" id="seg3"></div>
+            <div class="strength-segment" id="seg4"></div>
+          </div>
+          <span class="strength-label" id="strengthLabel">Password strength</span>
+        </div>
+
+        <!-- ── Requirements checklist ── -->
+        <div class="requirements-list" id="requirementsList">
+          <p class="req-title">Requirements:</p>
+          <div class="req-item" id="req-length">
+            <span class="req-icon">○</span><span>At least 8 characters</span>
+          </div>
+          <div class="req-item" id="req-uppercase">
+            <span class="req-icon">○</span><span>Uppercase letter (A–Z)</span>
+          </div>
+          <div class="req-item" id="req-lowercase">
+            <span class="req-icon">○</span><span>Lowercase letter (a–z)</span>
+          </div>
+          <div class="req-item" id="req-number">
+            <span class="req-icon">○</span><span>Number (0–9)</span>
+          </div>
+          <div class="req-item" id="req-special">
+            <span class="req-icon">○</span><span>Special character (! @ # $ …)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="form-group">
+        <label for="confirmPasswordInput" class="form-label">
+          <span class="label-icon">🔐</span> Confirm Password
+        </label>
+        <div class="input-wrapper">
+          <input type="password" id="confirmPasswordInput" class="form-input"
+                 placeholder="Re-enter your password"
+                 autocomplete="new-password" required>
+          <button type="button" class="toggle-password"
+                  onclick="togglePassword('confirmPasswordInput')" title="Toggle visibility">
+            <span id="confirmPasswordInputEye">👁️</span>
+          </button>
+          <span class="input-status" id="confirmStatus"></span>
+        </div>
+        <span class="form-error" id="confirmPasswordError"></span>
+      </div>
+
+      <!-- CAPTCHA -->
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">🤖</span> CAPTCHA Verification
+        </label>
+        <div class="captcha-container">
+          <div class="captcha-image-wrapper">
+            <img id="captchaImage" src="/api/auth/captcha" alt="CAPTCHA math challenge" class="captcha-image">
+            <button type="button" id="refreshCaptcha" class="captcha-refresh"
+                    onclick="refreshCaptcha()" title="Get new CAPTCHA">↻ Refresh</button>
+          </div>
+          <div style="flex:1">
+            <input type="number" id="captchaAnswer" class="form-input captcha-input"
+                   placeholder="Answer" min="0" max="100" required>
+            <span class="form-error" id="captchaError"></span>
+          </div>
+        </div>
+        <span class="form-hint">Solve the math problem shown in the image</span>
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" id="submitBtn" class="btn btn-primary btn-full">
+        <span id="submitBtnText">Create Account</span>
+        <span id="submitBtnLoader" class="hidden">
+          <span class="spinner"></span> Processing…
+        </span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="/login" class="link">Sign In</a>
+    </div>
+  </div>
+
+  <!-- ═══ RIGHT: Feature panel ═══════════════════════════ -->
+  <div class="side-panel">
+    <div class="side-content">
+      <h2>Built for Security 🛡️</h2>
+      <div class="feature-list">
+        <div class="feature-item">
+          <span class="feature-icon">🔒</span>
+          <div>
+            <h3>bcrypt Password Hashing</h3>
+            <p>Passwords are never stored in plain text — bcrypt with cost factor 12 is used.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">✉️</span>
+          <div>
+            <h3>Email Verification</h3>
+            <p>A unique token is sent to your address to confirm account ownership.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🤖</span>
+          <div>
+            <h3>CAPTCHA Bot Prevention</h3>
+            <p>Server-generated math CAPTCHA blocks automated registrations.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">⚡</span>
+          <div>
+            <h3>Rate Limiting</h3>
+            <p>IP-based throttling prevents brute-force and abuse (5 attempts / 15 min).</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📊</span>
+          <div>
+            <h3>Admin Monitoring</h3>
+            <p>Full admin panel to oversee users, login attempts, and threat alerts.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/js/register.js"></script>
+</body>
+</html>

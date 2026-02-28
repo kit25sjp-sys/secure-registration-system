@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Database file (contains real user data – do not commit)
+database/registration.db
+
+# Environment variables (contains secrets)
+.env
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

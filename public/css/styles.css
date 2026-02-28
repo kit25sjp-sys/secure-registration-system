@@ -822,7 +822,7 @@ tbody tr:hover td { background: #fafafa; }
   vertical-align: middle;
   cursor: default;
 }
-.hash-copy-btn, .hash-view-btn {
+.hash-view-btn {
   padding: 2px 7px !important;
   font-size: .74rem !important;
   margin-left: 3px;

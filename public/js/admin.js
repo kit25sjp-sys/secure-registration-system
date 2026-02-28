@@ -216,7 +216,6 @@ function renderUsersTable(users) {
       <td class="hash-cell">
         ${u.password_hash
           ? `<span class="hash-preview" title="${esc(u.password_hash)}">${esc(u.password_hash.substring(0, 20))}&#8230;</span>
-             <button class="btn btn-sm btn-secondary hash-copy-btn" data-action="copyhash" data-id="${u.id}" title="Copy full hash">&#128203;</button>
              <button class="btn btn-sm btn-secondary hash-view-btn" data-action="viewhash" data-id="${u.id}" title="View full hash">&#128065;</button>`
           : '—'}
       </td>
@@ -249,13 +248,6 @@ document.getElementById('usersTableBody').addEventListener('click', async (e) =>
   const id     = parseInt(btn.getAttribute('data-id'), 10);
   if (action === 'toggle')   toggleUser(id);
   if (action === 'delete')   deleteUser(id);
-  if (action === 'copyhash') {
-    const user = allUsers.find(u => u.id === id);
-    if (user && user.password_hash) {
-      await navigator.clipboard.writeText(user.password_hash);
-      showAdminToast('Hash copied to clipboard!', 'success');
-    }
-  }
   if (action === 'viewhash') {
     const user = allUsers.find(u => u.id === id);
     if (user && user.password_hash) showHashModal(user.username, user.password_hash);

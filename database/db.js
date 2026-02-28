@@ -119,7 +119,8 @@ async function initDatabase() {
       last_login          TEXT,
       ip_address          TEXT,
       failed_attempts     INTEGER DEFAULT 0,
-      locked_until        TEXT
+      locked_until        TEXT,
+      role                TEXT    DEFAULT 'user'
     );
 
     CREATE TABLE IF NOT EXISTS password_history (
@@ -162,6 +163,7 @@ async function initDatabase() {
     if (!colNames.includes('otp_hash'))     { _db.run('ALTER TABLE users ADD COLUMN otp_hash TEXT'); }
     if (!colNames.includes('otp_expires'))  { _db.run('ALTER TABLE users ADD COLUMN otp_expires TEXT'); }
     if (!colNames.includes('otp_attempts')) { _db.run('ALTER TABLE users ADD COLUMN otp_attempts INTEGER DEFAULT 0'); }
+    if (!colNames.includes('role'))         { _db.run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'"); }
   }
 
   /* 6. Seed default admin account */

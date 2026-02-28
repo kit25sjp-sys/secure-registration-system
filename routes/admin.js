@@ -70,7 +70,7 @@ router.get('/users', adminAuthMiddleware, (req, res) => {
   try {
     const db    = getDb();
     const users = db.prepare(`
-      SELECT id, username, email, password_hash, is_verified, is_active, created_at,
+      SELECT id, username, email, password_hash, role, is_verified, is_active, created_at,
              last_login, ip_address, failed_attempts, locked_until
       FROM users ORDER BY created_at DESC
     `).all();
@@ -95,6 +95,27 @@ router.patch('/users/:id/toggle', adminAuthMiddleware, (req, res) => {
     return res.json({ success: true, is_active: newStatus, message: `User ${newStatus ? 'activated' : 'deactivated'}.` });
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Failed to update user.' });
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   PATCH /api/admin/users/:id/role  – change user role
+═══════════════════════════════════════════════════════════ */
+router.patch('/users/:id/role', adminAuthMiddleware, (req, res) => {
+  try {
+    const allowed = ['user', 'editor', 'admin'];
+    const { role } = req.body;
+    if (!allowed.includes(role))
+      return res.status(400).json({ success: false, message: `Invalid role. Must be: ${allowed.join(', ')}.` });
+
+    const db   = getDb();
+    const user = db.prepare('SELECT id, username FROM users WHERE id=?').get(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    db.prepare('UPDATE users SET role=? WHERE id=?').run(role, user.id);
+    return res.json({ success: true, role, message: `Role updated to “${role}” for ${user.username}.` });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to update role.' });
   }
 });
 

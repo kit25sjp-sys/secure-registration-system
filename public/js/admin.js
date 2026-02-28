@@ -188,10 +188,10 @@ let allUsers = [];
 
 async function loadUsers() {
   const tbody = document.getElementById('usersTableBody');
-  tbody.innerHTML = '<tr><td colspan="10"><div class="loading-spinner"></div></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="11"><div class="loading-spinner"></div></td></tr>';
 
   const data = await apiFetch('/api/admin/users');
-  if (!data || !data.success) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Failed to load users.</td></tr>'; return; }
+  if (!data || !data.success) { tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Failed to load users.</td></tr>'; return; }
 
   allUsers = data.users;
   renderUsersTable(allUsers);
@@ -200,16 +200,27 @@ async function loadUsers() {
 function renderUsersTable(users) {
   const tbody = document.getElementById('usersTableBody');
   if (!users.length) {
-    tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">👤</div><p>No users found</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">👤</div><p>No users found</p></div></td></tr>';
     return;
   }
-  tbody.innerHTML = users.map(u => `
+  tbody.innerHTML = users.map(u => {
+    const role = u.role || 'user';
+    const roleClass = { admin: 'role-admin', editor: 'role-editor', user: 'role-user' }[role] || 'role-user';
+    return `
     <tr id="user-row-${u.id}">
       <td><strong>#${u.id}</strong></td>
       <td><strong>${esc(u.username)}</strong></td>
       <td>${esc(u.email)}</td>
       <td>${u.is_verified ? '<span class="badge badge-success">✓ Verified</span>' : '<span class="badge badge-warning">⏳ Pending</span>'}</td>
       <td>${u.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'}</td>
+      <td>
+        <span class="role-badge ${roleClass}">${role.charAt(0).toUpperCase() + role.slice(1)}</span>
+        <select class="role-select" data-action="changerole" data-id="${u.id}" title="Change role">
+          <option value="user"   ${role === 'user'   ? 'selected' : ''}>User</option>
+          <option value="editor" ${role === 'editor' ? 'selected' : ''}>Editor</option>
+          <option value="admin"  ${role === 'admin'  ? 'selected' : ''}>Admin</option>
+        </select>
+      </td>
       <td class="text-muted">${fmtDate(u.created_at)}</td>
       <td class="text-muted">${u.last_login ? fmtDate(u.last_login) : '—'}</td>
       <td class="text-muted">${u.ip_address || '—'}</td>
@@ -231,7 +242,8 @@ function renderUsersTable(users) {
                   title="Delete">&#128465;</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 /* Search */
@@ -240,10 +252,10 @@ document.getElementById('userSearch').addEventListener('input', (e) => {
   renderUsersTable(q ? allUsers.filter(u => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) : allUsers);
 });
 
-/* Event delegation – handles toggle + delete for all rows (CSP-safe, works on dynamic rows) */
+/* Event delegation – handles toggle + delete + viewhash for all rows (CSP-safe, works on dynamic rows) */
 document.getElementById('usersTableBody').addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-action]');
-  if (!btn) return;
+  if (!btn || btn.tagName === 'SELECT') return;
   const action = btn.getAttribute('data-action');
   const id     = parseInt(btn.getAttribute('data-id'), 10);
   if (action === 'toggle')   toggleUser(id);
@@ -252,6 +264,15 @@ document.getElementById('usersTableBody').addEventListener('click', async (e) =>
     const user = allUsers.find(u => u.id === id);
     if (user && user.password_hash) showHashModal(user.username, user.password_hash);
   }
+});
+
+/* Role change – uses 'change' event on the select (CSP-safe) */
+document.getElementById('usersTableBody').addEventListener('change', async (e) => {
+  const sel = e.target.closest('select[data-action="changerole"]');
+  if (!sel) return;
+  const id   = parseInt(sel.getAttribute('data-id'), 10);
+  const role = sel.value;
+  await changeRole(id, role);
 });
 
 /* Toggle active */
@@ -281,6 +302,25 @@ async function deleteUser(id) {
   } else {
     if (row) row.style.opacity = '';
     showAdminToast(data ? data.message : 'Delete failed. Please try again.', 'error');
+  }
+}
+
+/* Change role */
+async function changeRole(id, role) {
+  const data = await apiFetch(`/api/admin/users/${id}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  });
+  if (data && data.success) {
+    /* Update allUsers cache so badge re-renders correctly */
+    const u = allUsers.find(u => u.id === id);
+    if (u) u.role = role;
+    renderUsersTable(allUsers);
+    showAdminToast(data.message, 'success');
+  } else {
+    showAdminToast(data ? data.message : 'Role update failed.', 'error');
+    /* Re-render to reset the select to its old value */
+    renderUsersTable(allUsers);
   }
 }
 

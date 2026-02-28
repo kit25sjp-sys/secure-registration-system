@@ -829,3 +829,34 @@ tbody tr:hover td { background: #fafafa; }
   vertical-align: middle;
   line-height: 1.6 !important;
 }
+
+/* ─ Role badges ─ */
+.role-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 99px;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.role-user   { background: #e8f4fd; color: #1a6fa3; border: 1px solid #b6d9f5; }
+.role-editor { background: #fef3e2; color: #a05d00; border: 1px solid #f5d99a; }
+.role-admin  { background: #f0e6ff; color: #5a0fb4; border: 1px solid #cfa8f5; }
+
+/* ─ Role select dropdown ─ */
+.role-select {
+  display: block;
+  width: 100%;
+  padding: 4px 6px;
+  font-size: .78rem;
+  border: 1px solid #d0d0e0;
+  border-radius: 6px;
+  background: #fafafa;
+  color: #333;
+  cursor: pointer;
+  outline: none;
+  transition: border-color .2s;
+}
+.role-select:focus { border-color: #6c63ff; background: #fff; }

@@ -1,4 +1,4 @@
-# 🔒 SecureReg – Secure Web-Based Registration System
+# 🔒 SecureReg – Secure Web-Based Registration System by Sujan poudel
 
 A full-stack, security-hardened user registration platform built with **Node.js**, **Express**, and **SQLite**.  
 Implements all controls described in the System Design & Required Security Enhancements documentation.

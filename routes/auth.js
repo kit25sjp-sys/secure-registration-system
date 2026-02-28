@@ -5,7 +5,6 @@ const crypto    = require('crypto');
 const { body, validationResult } = require('express-validator');
 
 const { getDb }                      = require('../database/db');
-const { sendOTPEmail }               = require('../utils/emailService');
 const { checkPasswordStrength }      = require('../utils/passwordUtils');
 const {
   registrationLimiter, loginLimiter,
@@ -139,12 +138,11 @@ router.post('/register', registrationLimiter, registerValidation, async (req, re
       const otpExpires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       db.prepare('UPDATE users SET otp_hash=?, otp_expires=?, otp_attempts=0 WHERE id=?')
         .run(otpHash, otpExpires, dupEmail.id);
-      try { await sendOTPEmail(email, username, otp); } catch (e) { console.error('Email error:', e.message); }
       return res.status(200).json({
         success: true,
-        message: 'A new OTP has been sent to your email. Please verify to complete registration.',
+        message: 'A fresh OTP has been generated. Use the code shown on the verification page.',
         email,
-        otp: process.env.NODE_ENV !== 'production' ? otp : undefined,
+        otp,
       });
     }
 
@@ -167,17 +165,11 @@ router.post('/register', registrationLimiter, registerValidation, async (req, re
     db.prepare('INSERT INTO password_history (user_id, password_hash) VALUES (?, ?)')
       .run(result.lastInsertRowid, passwordHash);
 
-    /* ── 9. Send OTP email ── */
-    try {
-      await sendOTPEmail(email, username, otp);
-    } catch (emailErr) {
-      console.error('Email send error (non-fatal):', emailErr.message);
-    }
-
     return res.status(201).json({
       success: true,
-      message: 'Registration successful! A 6-digit OTP has been sent to your email.',
+      message: 'Registration successful! Use the OTP code shown on the verification page.',
       email,
+      otp,
     });
 
   } catch (err) {
@@ -276,15 +268,10 @@ router.post('/resend-otp', otpResendLimiter, async (req, res) => {
     db.prepare('UPDATE users SET otp_hash=?, otp_expires=?, otp_attempts=0 WHERE id=?')
       .run(otpHash, otpExpires, user.id);
 
-    try {
-      await sendOTPEmail(email, user.username, otp);
-    } catch (emailErr) {
-      console.error('Resend OTP email error:', emailErr.message);
-    }
-
     return res.json({
       success: true,
-      message: 'A new OTP has been sent to your email.',
+      message: 'A new OTP has been generated.',
+      otp,
     });
 
   } catch (err) {

@@ -769,3 +769,63 @@ tbody tr:hover td { background: #fafafa; }
   .otp-card { padding: 32px 20px 28px; }
   .otp-digit { width: 44px; height: 54px; font-size: 1.4rem; }
 }
+
+/* ─ Demo OTP box (otp-verify page) ─ */
+.demo-otp-box {
+  display: none;
+  background: linear-gradient(135deg, #fff8e1, #fffde7);
+  border: 2px dashed #f39c12;
+  border-radius: 14px;
+  padding: 16px 24px;
+  margin: 16px 0 20px;
+  text-align: center;
+  animation: fadeInUp .3s ease;
+}
+.demo-otp-box.visible { display: block; }
+.demo-otp-label {
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #e67e22;
+  margin: 0 0 6px;
+}
+.demo-otp-code {
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: .35em;
+  color: #1a1a2e;
+  font-family: 'Courier New', monospace;
+  margin: 0 0 6px;
+}
+.demo-otp-hint {
+  font-size: .75rem;
+  color: #888;
+  margin: 0;
+}
+
+/* Hash cell in users table */
+.hash-cell { max-width: 200px; white-space: nowrap; }
+.hash-preview {
+  display: inline-block;
+  font-family: 'Courier New', monospace;
+  font-size: .72rem;
+  color: #3a3080;
+  background: #f4f3ff;
+  border: 1px solid #ddd9ff;
+  border-radius: 4px;
+  padding: 2px 7px;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: default;
+}
+.hash-copy-btn, .hash-view-btn {
+  padding: 2px 7px !important;
+  font-size: .74rem !important;
+  margin-left: 3px;
+  vertical-align: middle;
+  line-height: 1.6 !important;
+}

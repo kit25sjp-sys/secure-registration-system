@@ -70,7 +70,7 @@ router.get('/users', adminAuthMiddleware, (req, res) => {
   try {
     const db    = getDb();
     const users = db.prepare(`
-      SELECT id, username, email, is_verified, is_active, created_at,
+      SELECT id, username, email, password_hash, is_verified, is_active, created_at,
              last_login, ip_address, failed_attempts, locked_until
       FROM users ORDER BY created_at DESC
     `).all();

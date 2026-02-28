@@ -188,10 +188,10 @@ let allUsers = [];
 
 async function loadUsers() {
   const tbody = document.getElementById('usersTableBody');
-  tbody.innerHTML = '<tr><td colspan="9"><div class="loading-spinner"></div></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10"><div class="loading-spinner"></div></td></tr>';
 
   const data = await apiFetch('/api/admin/users');
-  if (!data || !data.success) { tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Failed to load users.</td></tr>'; return; }
+  if (!data || !data.success) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Failed to load users.</td></tr>'; return; }
 
   allUsers = data.users;
   renderUsersTable(allUsers);
@@ -200,7 +200,7 @@ async function loadUsers() {
 function renderUsersTable(users) {
   const tbody = document.getElementById('usersTableBody');
   if (!users.length) {
-    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">👤</div><p>No users found</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">👤</div><p>No users found</p></div></td></tr>';
     return;
   }
   tbody.innerHTML = users.map(u => `
@@ -213,6 +213,13 @@ function renderUsersTable(users) {
       <td class="text-muted">${fmtDate(u.created_at)}</td>
       <td class="text-muted">${u.last_login ? fmtDate(u.last_login) : '—'}</td>
       <td class="text-muted">${u.ip_address || '—'}</td>
+      <td class="hash-cell">
+        ${u.password_hash
+          ? `<span class="hash-preview" title="${esc(u.password_hash)}">${esc(u.password_hash.substring(0, 20))}&#8230;</span>
+             <button class="btn btn-sm btn-secondary hash-copy-btn" data-action="copyhash" data-id="${u.id}" title="Copy full hash">&#128203;</button>
+             <button class="btn btn-sm btn-secondary hash-view-btn" data-action="viewhash" data-id="${u.id}" title="View full hash">&#128065;</button>`
+          : '—'}
+      </td>
       <td>
         <div class="action-btns">
           <button class="btn btn-sm ${u.is_active ? 'btn-warning' : 'btn-success'}"
@@ -240,8 +247,19 @@ document.getElementById('usersTableBody').addEventListener('click', async (e) =>
   if (!btn) return;
   const action = btn.getAttribute('data-action');
   const id     = parseInt(btn.getAttribute('data-id'), 10);
-  if (action === 'toggle') toggleUser(id);
-  if (action === 'delete') deleteUser(id);
+  if (action === 'toggle')   toggleUser(id);
+  if (action === 'delete')   deleteUser(id);
+  if (action === 'copyhash') {
+    const user = allUsers.find(u => u.id === id);
+    if (user && user.password_hash) {
+      await navigator.clipboard.writeText(user.password_hash);
+      showAdminToast('Hash copied to clipboard!', 'success');
+    }
+  }
+  if (action === 'viewhash') {
+    const user = allUsers.find(u => u.id === id);
+    if (user && user.password_hash) showHashModal(user.username, user.password_hash);
+  }
 });
 
 /* Toggle active */
@@ -292,6 +310,53 @@ function showAdminToast(msg, type = 'info') {
   toast.innerHTML = `<span>${icons[type] || ''}</span><span>${msg}</span>`;
   document.body.appendChild(toast);
   setTimeout(() => toast?.remove(), 3500);
+}
+
+/* ────────────────────────────────────────────────────────
+   Hash viewer modal
+──────────────────────────────────────────────────────── */
+function showHashModal(username, hash) {
+  document.getElementById('adminHashModal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'adminHashModal';
+  modal.style.cssText = [
+    'position:fixed','inset:0','background:rgba(0,0,0,.5)',
+    'display:flex','align-items:center','justify-content:center','z-index:9999',
+  ].join(';');
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:540px;
+                width:93%;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0;font-size:1rem;color:#1a1a2e">&#128273; Password Hash — ${esc(username)}</h3>
+        <button id="hashModalClose"
+          style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#999;line-height:1">&#215;</button>
+      </div>
+      <div style="background:#f4f3ff;border:1px solid #ddd9ff;border-radius:8px;
+                  padding:14px 16px;font-family:'Courier New',monospace;font-size:.78rem;
+                  color:#3a3080;word-break:break-all;line-height:1.65">
+        ${esc(hash)}
+      </div>
+      <div style="margin-top:12px;font-size:.8rem;color:#777;line-height:1.6">
+        <strong>Algorithm:</strong> bcrypt &nbsp;&middot;&nbsp;
+        <strong>Cost factor:</strong> ${hash.split('$')[2] || '?'} &nbsp;&middot;&nbsp;
+        <strong>Length:</strong> ${hash.length} chars
+      </div>
+      <button id="hashModalCopy"
+        style="margin-top:16px;width:100%;padding:10px;
+               background:linear-gradient(135deg,#6c63ff,#764ba2);
+               color:#fff;border:none;border-radius:8px;cursor:pointer;
+               font-size:.9rem;font-weight:700">
+        &#128203; Copy Full Hash
+      </button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#hashModalClose').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  modal.querySelector('#hashModalCopy').addEventListener('click', async () => {
+    await navigator.clipboard.writeText(hash);
+    showAdminToast('Hash copied to clipboard!', 'success');
+    modal.remove();
+  });
 }
 
 /* ────────────────────────────────────────────────────────

@@ -13,6 +13,15 @@ let adminUsername = localStorage.getItem('adminUsername') || '';
 document.addEventListener('DOMContentLoaded', () => {
   if (adminToken) { showDashboard(); }
   else            { showLoginForm(); }
+
+  // Header buttons
+  document.getElementById('btnLogout') .addEventListener('click', logout);
+  document.getElementById('btnRefresh').addEventListener('click', refreshAll);
+
+  // Tab buttons
+  document.getElementById('tab-users')     .addEventListener('click', () => switchTab('users'));
+  document.getElementById('tab-attempts')  .addEventListener('click', () => switchTab('attempts'));
+  document.getElementById('tab-suspicious').addEventListener('click', () => switchTab('suspicious'));
 });
 
 /* ────────────────────────────────────────────────────────
@@ -207,11 +216,13 @@ function renderUsersTable(users) {
       <td>
         <div class="action-btns">
           <button class="btn btn-sm ${u.is_active ? 'btn-warning' : 'btn-success'}"
-                  onclick="toggleUser(${u.id})"
+                  data-action="toggle" data-id="${u.id}"
                   title="${u.is_active ? 'Deactivate' : 'Activate'}">
-            ${u.is_active ? '🔒' : '🔓'}
+            ${u.is_active ? '&#128274;' : '&#128275;'}
           </button>
-          <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})" title="Delete">🗑️</button>
+          <button class="btn btn-sm btn-danger"
+                  data-action="delete" data-id="${u.id}"
+                  title="Delete">&#128465;</button>
         </div>
       </td>
     </tr>`).join('');
@@ -221,6 +232,16 @@ function renderUsersTable(users) {
 document.getElementById('userSearch').addEventListener('input', (e) => {
   const q = e.target.value.toLowerCase();
   renderUsersTable(q ? allUsers.filter(u => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) : allUsers);
+});
+
+/* Event delegation – handles toggle + delete for all rows (CSP-safe, works on dynamic rows) */
+document.getElementById('usersTableBody').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.getAttribute('data-action');
+  const id     = parseInt(btn.getAttribute('data-id'), 10);
+  if (action === 'toggle') toggleUser(id);
+  if (action === 'delete') deleteUser(id);
 });
 
 /* Toggle active */

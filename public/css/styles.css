@@ -237,8 +237,9 @@ body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-.toggle-password:hover  { color: var(--primary); background: rgba(108,99,255,.07); }
-.toggle-password:active { background: rgba(108,99,255,.15); }
+.toggle-password:hover       { color: var(--primary); background: rgba(108,99,255,.07); }
+.toggle-password:active      { background: rgba(108,99,255,.15); }
+.toggle-password.active      { color: var(--primary); }
 
 .input-status {
   position: absolute; right: 44px;

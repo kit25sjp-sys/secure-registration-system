@@ -60,8 +60,8 @@
     </div>
     <div class="admin-header-right">
       <span id="adminUserBadge" class="admin-user-badge"></span>
-      <button class="btn btn-sm btn-secondary" onclick="refreshAll()">🔄 Refresh</button>
-      <button class="btn btn-sm btn-danger"    onclick="logout()">↩ Logout</button>
+      <button id="btnRefresh" class="btn btn-sm btn-secondary">&#128260; Refresh</button>
+      <button id="btnLogout"  class="btn btn-sm btn-danger">&#8617; Logout</button>
     </div>
   </header>
 
@@ -113,9 +113,9 @@
 
     <!-- ── Tabs ── -->
     <div class="tabs">
-      <button class="tab-btn active" id="tab-users"     onclick="switchTab('users')">👥 User Management</button>
-      <button class="tab-btn"        id="tab-attempts"  onclick="switchTab('attempts')">🔐 Login Attempts</button>
-      <button class="tab-btn"        id="tab-suspicious" onclick="switchTab('suspicious')">⚠️ Suspicious Activity</button>
+      <button class="tab-btn active" id="tab-users">👥 User Management</button>
+      <button class="tab-btn"        id="tab-attempts">🔐 Login Attempts</button>
+      <button class="tab-btn"        id="tab-suspicious">⚠️ Suspicious Activity</button>
     </div>
 
     <!-- ── Users panel ── -->

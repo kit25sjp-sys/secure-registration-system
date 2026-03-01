@@ -78,6 +78,17 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('passwordError').textContent = '';
       passIn.classList.remove('error');
     }
+
+    /* reCAPTCHA check */
+    const recaptchaToken = (typeof grecaptcha !== 'undefined') ? grecaptcha.getResponse() : '';
+    const captchaErr = document.getElementById('captchaError');
+    if (!recaptchaToken) {
+      if (captchaErr) { captchaErr.textContent = 'Please complete the “I am not a robot” verification.'; }
+      valid = false;
+    } else {
+      if (captchaErr) captchaErr.textContent = '';
+    }
+
     if (!valid) return;
 
     /* submit */
@@ -91,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const resp = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, recaptchaToken }),
       });
       const data = await resp.json();
 
@@ -108,6 +119,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
       } else {
         showAlert(data.message || 'Login failed. Please try again.', 'error');
+        /* Always reset reCAPTCHA on any failure so user must re-verify */
+        if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
+        if (document.getElementById('captchaError')) document.getElementById('captchaError').textContent = '';
         if (resp.status === 423) {
           submitBtn.disabled = true;
           showAlert(data.message, 'warning');

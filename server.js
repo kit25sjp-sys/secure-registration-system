@@ -25,10 +25,12 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc:  ["'self'", "'unsafe-inline'"],
+        scriptSrc:  ["'self'", "'unsafe-inline'", 'https://www.google.com', 'https://www.gstatic.com'],
         styleSrc:   ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc:    ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc:     ["'self'", 'data:'],
+        imgSrc:     ["'self'", 'data:', 'https://www.gstatic.com', 'https://www.google.com'],
+        frameSrc:   ['https://www.google.com', 'https://recaptcha.google.com'],
+        connectSrc: ["'self'", 'https://www.google.com'],
       },
     },
   })

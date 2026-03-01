@@ -1060,7 +1060,20 @@ tbody tr:hover td { background: #fafafa; }
   margin: 0;
 }
 
-/* ── Logout nav button ────────────────────────────────── */
+/* ── Google reCAPTCHA wrapper ────────────────────────────── */
+.recaptcha-wrapper {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  transform-origin: left top;
+}
+
+@media (max-width: 400px) {
+  .recaptcha-wrapper { transform: scale(0.88); }
+}
+
+
 .btn-nav-logout {
   background: none;
   border: none;

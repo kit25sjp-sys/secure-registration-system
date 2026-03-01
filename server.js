@@ -81,10 +81,12 @@ app.use('/api/admin', adminRoutes);
 /* ──────────────────────────────────────────────
    Page routes
 ────────────────────────────────────────────── */
-app.get('/',           (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/login',      (_req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
-app.get('/otp-verify', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'otp-verify.html')));
-app.get('/admin',      (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/',                (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/login',           (_req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/otp-verify',      (_req, res) => res.sendFile(path.join(__dirname, 'public', 'otp-verify.html')));
+app.get('/admin',           (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/dashboard',       (_req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+app.get('/change-password', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'change-password.html')));
 
 /* ──────────────────────────────────────────────
    Error handlers

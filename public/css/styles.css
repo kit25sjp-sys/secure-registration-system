@@ -860,3 +860,219 @@ tbody tr:hover td { background: #fafafa; }
   transition: border-color .2s;
 }
 .role-select:focus { border-color: #6c63ff; background: #fff; }
+
+/* ════════════════════════════════════════════════════════════
+   DASHBOARD PAGE
+════════════════════════════════════════════════════════════ */
+.dashboard-wrapper {
+  gap: 24px;
+  align-items: flex-start;
+  padding-top: 40px;
+  padding-bottom: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.dashboard-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 40px 36px 36px;
+  flex: 1;
+  min-width: 280px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.dashboard-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--gradient);
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+  box-shadow: 0 4px 18px rgba(108,99,255,.35);
+}
+
+.dashboard-welcome {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.dashboard-email {
+  font-size: .9rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.dashboard-badges {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ── Security card ────────────────────────────────────── */
+.security-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.security-icon {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.security-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.security-message {
+  font-size: .9rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.security-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: .85rem;
+}
+
+.security-detail-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 110px;
+  text-align: left;
+}
+
+.security-hash-preview {
+  background: #f4f4f8;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-family: 'Courier New', monospace;
+  font-size: .8rem;
+  color: #5a52d5;
+  letter-spacing: .02em;
+}
+
+.dashboard-change-btn {
+  margin-top: 24px;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  padding: 12px 20px;
+  display: inline-block;
+}
+
+/* ── Badge variants ───────────────────────────────────── */
+.badge-success { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
+.badge-info    { background: #eaf4fb; color: #1a6fa3; border: 1px solid #aed6f1; }
+
+/* ════════════════════════════════════════════════════════════
+   CHANGE-PASSWORD PAGE – security notice + info panel
+════════════════════════════════════════════════════════════ */
+.security-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #eafaf1;
+  border: 1px solid #a9dfbf;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: .88rem;
+  color: #1e8449;
+  margin-bottom: 18px;
+  line-height: 1.5;
+}
+
+.security-notice span:first-child {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* ── Right info-panel ─────────────────────────────────── */
+.info-panel {
+  flex: 1;
+  min-width: 260px;
+  max-width: 360px;
+  padding: 36px 28px;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (max-width: 820px) {
+  .info-panel { display: none; }
+}
+
+.info-panel-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.info-tip {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.info-tip-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.info-tip strong {
+  display: block;
+  font-size: .92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.info-tip p {
+  font-size: .83rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Logout nav button ────────────────────────────────── */
+.btn-nav-logout {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--danger);
+  font-weight: 600;
+  padding: 0;
+}
+
+.btn-nav-logout:hover {
+  text-decoration: underline;
+}
+

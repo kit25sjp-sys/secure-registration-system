@@ -371,6 +371,11 @@ router.post('/login', loginLimiter, async (req, res) => {
     db.prepare("UPDATE users SET failed_attempts=0, locked_until=NULL, last_login=datetime('now') WHERE id=?").run(user.id);
     logAttempt(true);
 
+    /* Store user in server-side session */
+    req.session.userId   = user.id;
+    req.session.username = user.username;
+    req.session.email    = user.email;
+
     return res.json({
       success: true,
       message: 'Login successful!',
@@ -380,6 +385,123 @@ router.post('/login', loginLimiter, async (req, res) => {
   } catch (err) {
     console.error('Login error:', err);
     return res.status(500).json({ success: false, message: 'Login failed. Please try again.' });
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   GET /api/auth/me  –  return session-based current user
+═══════════════════════════════════════════════════════════ */
+router.get('/me', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ success: false, message: 'Not authenticated.' });
+  }
+  return res.json({
+    success:  true,
+    user: {
+      id:       req.session.userId,
+      username: req.session.username,
+      email:    req.session.email,
+    },
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   POST /api/auth/logout
+═══════════════════════════════════════════════════════════ */
+router.post('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) return res.status(500).json({ success: false, message: 'Logout failed.' });
+    res.clearCookie('connect.sid');
+    return res.json({ success: true, message: 'Logged out successfully.' });
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   POST /api/auth/change-password
+   Requires an active session (logged-in user only).
+   1. Verify old password
+   2. Check password reuse against full history (current + past)
+   3. Hash & update current password
+   4. Append new hash to password_history
+═══════════════════════════════════════════════════════════ */
+router.post('/change-password', async (req, res) => {
+  try {
+    /* ── 1. Session guard ── */
+    if (!req.session.userId) {
+      return res.status(401).json({ success: false, message: 'You must be logged in to change your password.' });
+    }
+
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ success: false, message: 'All three password fields are required.' });
+    }
+
+    /* ── 2. New password must match confirm ── */
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, message: 'New password and confirmation do not match.' });
+    }
+
+    /* ── 3. Enforce minimum strength on the new password ── */
+    const strengthResult = checkPasswordStrength(newPassword);
+    if (strengthResult.score < 2) {
+      return res.status(400).json({
+        success:     false,
+        message:     'New password is too weak.',
+        suggestions: strengthResult.suggestions,
+      });
+    }
+
+    const db   = getDb();
+    const user = db.prepare('SELECT id, password_hash FROM users WHERE id = ?').get(req.session.userId);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User account not found.' });
+    }
+
+    /* ── 4. Verify the old / current password ── */
+    const oldMatch = await bcrypt.compare(oldPassword, user.password_hash);
+    if (!oldMatch) {
+      return res.status(401).json({ success: false, message: 'Old password is incorrect.' });
+    }
+
+    /* ── 5. Password-reuse check against full history ── */
+    const historyRows = db.prepare(
+      'SELECT password_hash FROM password_history WHERE user_id = ? ORDER BY created_at DESC'
+    ).all(user.id);
+
+    for (const row of historyRows) {
+      const reused = await bcrypt.compare(newPassword, row.password_hash);
+      if (reused) {
+        return res.status(400).json({
+          success: false,
+          message: 'You cannot reuse your old password. Please choose a completely new password.',
+        });
+      }
+    }
+
+    /* ── 6. Hash and persist the new password ── */
+    const newHash = await bcrypt.hash(newPassword, 12);
+
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, user.id);
+    db.prepare('INSERT INTO password_history (user_id, password_hash) VALUES (?, ?)').run(user.id, newHash);
+
+    /* Optionally keep only the last 5 history entries to avoid unbounded growth */
+    const histCount = db.prepare('SELECT COUNT(*) AS cnt FROM password_history WHERE user_id = ?').get(user.id);
+    if (histCount && histCount.cnt > 5) {
+      const oldest = db.prepare(
+        'SELECT id FROM password_history WHERE user_id = ? ORDER BY created_at ASC LIMIT ?'
+      ).all(user.id, histCount.cnt - 5);
+      for (const old of oldest) {
+        db.prepare('DELETE FROM password_history WHERE id = ?').run(old.id);
+      }
+    }
+
+    return res.json({ success: true, message: 'Password changed successfully! Your account is now secured with the new password.' });
+
+  } catch (err) {
+    console.error('Change password error:', err);
+    return res.status(500).json({ success: false, message: 'Password change failed. Please try again.' });
   }
 });
 

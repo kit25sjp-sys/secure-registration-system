@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – SecureReg</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="top-nav-logo">
+    <span>&#128274;</span>
+    <span>SecureReg</span>
+  </div>
+  <div class="top-nav-links">
+    <a href="/dashboard" class="nav-link nav-link-active">&#128101; Dashboard</a>
+    <a href="/admin" class="nav-link nav-link-admin">&#9881;&#65039; Admin</a>
+    <button id="logoutBtn" class="nav-link nav-link-logout btn-nav-logout">&#128682; Logout</button>
+  </div>
+</nav>
+
+<div class="page-wrapper dashboard-wrapper">
+
+  <!-- ── Welcome Card ─────────────────────────────────── -->
+  <div class="dashboard-card">
+    <div class="dashboard-avatar" id="avatarCircle">?</div>
+    <h1 class="dashboard-welcome" id="welcomeHeading">Welcome!</h1>
+    <p class="dashboard-email" id="dashboardEmail">Loading…</p>
+
+    <div class="dashboard-badges">
+      <span class="badge badge-success">&#128274; Account Verified</span>
+      <span class="badge badge-info">&#128100; Standard User</span>
+    </div>
+  </div>
+
+  <!-- ── Security Card ────────────────────────────────── -->
+  <div class="dashboard-card security-card">
+    <div class="security-icon">&#128737;</div>
+    <h2 class="security-title">Password Security</h2>
+    <p class="security-message">
+      Your password is <strong>securely protected</strong>. It is stored using
+      <strong>bcrypt</strong> hashing — your actual password is
+      <em>never visible</em> to anyone, including administrators.
+    </p>
+    <div class="security-detail-row">
+      <span class="security-detail-label">Stored as</span>
+      <code class="security-hash-preview">&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679; (hashed, never plain text)</code>
+    </div>
+    <div class="security-detail-row">
+      <span class="security-detail-label">Algorithm</span>
+      <code class="security-hash-preview">bcrypt · cost factor 12</code>
+    </div>
+    <div class="security-detail-row">
+      <span class="security-detail-label">Reuse policy</span>
+      <code class="security-hash-preview">Last 5 passwords blocked</code>
+    </div>
+
+    <a href="/change-password" class="btn btn-primary dashboard-change-btn">
+      &#128273; Change Password
+    </a>
+  </div>
+
+</div>
+
+<script>
+/* ── Guard: redirect to login if not authenticated ─────── */
+(async () => {
+  try {
+    const res  = await fetch('/api/auth/me', { credentials: 'include' });
+    const data = await res.json();
+
+    if (!data.success) {
+      window.location.replace('/login');
+      return;
+    }
+
+    /* Populate UI with user data */
+    const { username, email } = data.user;
+    document.getElementById('avatarCircle').textContent   = username.charAt(0).toUpperCase();
+    document.getElementById('welcomeHeading').textContent = `Welcome back, ${username}!`;
+    document.getElementById('dashboardEmail').textContent = email;
+    document.title = `Dashboard – ${username}`;
+  } catch {
+    window.location.replace('/login');
+  }
+})();
+
+/* ── Logout ────────────────────────────────────────────── */
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  } finally {
+    window.location.replace('/login');
+  }
+});
+</script>
+
+</body>
+</html>

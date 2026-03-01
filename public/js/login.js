@@ -99,16 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (data.success) {
-        showAlert(`Welcome back, <strong>${data.user.username}</strong>! Login successful.`, 'success');
-        /* In a real app you would redirect or set a session cookie here */
+        showAlert(`Welcome back, <strong>${data.user.username}</strong>! Redirecting to dashboard…`, 'success');
         setTimeout(() => {
-          form.innerHTML = `
-            <div style="text-align:center;padding:24px 0">
-              <div style="font-size:3.5rem;margin-bottom:16px">👋</div>
-              <h2 style="color:#27ae60;margin-bottom:10px">Welcome, ${data.user.username}!</h2>
-              <p style="color:#555">You are now logged in.</p>
-            </div>`;
-        }, 1200);
+          window.location.replace('/dashboard');
+        }, 1000);
       } else {
         showAlert(data.message || 'Login failed. Please try again.', 'error');
         if (resp.status === 423) {

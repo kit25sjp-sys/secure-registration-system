@@ -1060,9 +1060,15 @@ tbody tr:hover td { background: #fafafa; }
   margin: 0;
 }
 
+/* ── Word CAPTCHA image (wider than math version) ────────── */
+.captcha-word-image {
+  width: 240px;
+  height: 70px;
+  object-fit: contain;
+}
+
 /* ── Google reCAPTCHA wrapper ────────────────────────────── */
-.recaptcha-wrapper {
-  display: flex;
+.recaptcha-wrapper {  display: flex;
   justify-content: flex-start;
   margin-top: 4px;
   margin-bottom: 4px;

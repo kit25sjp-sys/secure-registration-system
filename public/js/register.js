@@ -126,11 +126,15 @@ function refreshCaptcha() {
   const img = document.getElementById('captchaImage');
   const btn = document.getElementById('refreshCaptcha');
   if (!img) return;
+  img.style.opacity = '0.4';
+  img.style.transition = 'opacity .2s';
+  img.src = '/api/auth/captcha?' + Date.now();
+  img.onload = () => { img.style.opacity = '1'; };
   btn.style.transition = 'transform .5s ease';
   btn.style.transform  = 'rotate(360deg)';
   setTimeout(() => { btn.style.transform = ''; }, 500);
-  img.src = '/api/auth/captcha?' + Date.now();
-  document.getElementById('captchaAnswer').value = '';
+  const input = document.getElementById('captchaAnswer');
+  if (input) input.value = '';
   clearError('captcha');
 }
 
@@ -270,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (password !== confirmPassword) { setError('confirmPassword', 'Passwords do not match'); valid = false; }
 
     /* validate captcha */
-    if (!captchaAnswer) { setError('captcha', 'Please solve the CAPTCHA'); valid = false; }
+    if (!captchaAnswer || captchaAnswer.trim().length < 6) { setError('captcha', 'Please type the 6 characters shown in the image'); valid = false; }
 
     if (!valid) return;
 
@@ -285,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const resp = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password, confirmPassword, captchaAnswer: parseInt(captchaAnswer, 10) }),
+        body: JSON.stringify({ username, email, password, confirmPassword, captchaAnswer: captchaAnswer.trim() }),
       });
       const data = await resp.json();
 

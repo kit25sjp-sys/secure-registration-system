@@ -23,49 +23,99 @@ function generateOTP() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   CAPTCHA – SVG math challenge (no external API needed)
+   CAPTCHA – Distorted word image (SVG, no external API)
+   Generates a random 6-char alphanumeric word and renders it
+   with per-character rotation, wave-path warp, noise lines
+   and dot spatter so OCR tools cannot trivially solve it.
 ═══════════════════════════════════════════════════════════ */
+
+/* Pool: uppercase letters + digits, deliberately excludes 0/O/1/I/l to avoid confusion */
+const CAPTCHA_POOL = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function generateCaptchaWord(len = 6) {
+  let word = '';
+  for (let i = 0; i < len; i++) {
+    word += CAPTCHA_POOL[crypto.randomInt(0, CAPTCHA_POOL.length)];
+  }
+  return word;
+}
+
+function buildWordCaptchaSVG(word) {
+  const W = 240, H = 70;
+  const COLORS = ['#1a1a2e','#0f3460','#4a235a','#1b4332','#6c0000','#003366'];
+  const BG_COLORS = ['#eef0f8','#f0f4ee','#f5eeff','#fff8ee','#eef8ff'];
+  const bg = BG_COLORS[crypto.randomInt(0, BG_COLORS.length)];
+
+  /* --- noise lines --- */
+  let lines = '';
+  for (let i = 0; i < 8; i++) {
+    const x1 = crypto.randomInt(0, W), y1 = crypto.randomInt(0, H);
+    const x2 = crypto.randomInt(0, W), y2 = crypto.randomInt(0, H);
+    const stroke = COLORS[crypto.randomInt(0, COLORS.length)];
+    lines += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="1.2" opacity="0.35"/>`;
+  }
+
+  /* --- dot spatter --- */
+  let dots = '';
+  for (let i = 0; i < 50; i++) {
+    const cx = crypto.randomInt(0, W), cy = crypto.randomInt(0, H);
+    const r  = (0.8 + Math.random() * 1.4).toFixed(1);
+    const fill = COLORS[crypto.randomInt(0, COLORS.length)];
+    dots += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" opacity="0.3"/>`;
+  }
+
+  /* --- characters --- */
+  let chars = '';
+  const step = (W - 24) / word.length;
+  for (let i = 0; i < word.length; i++) {
+    const x    = 12 + i * step + step / 2;
+    /* wave baseline: each char sits on a sine curve */
+    const wave = Math.sin(i * 1.1) * 7;
+    const y    = 40 + wave;
+    const rot  = (crypto.randomInt(0, 30) - 15).toFixed(1);
+    const size = 22 + crypto.randomInt(0, 10);
+    /* alternate between two dark colours per char */
+    const fill = COLORS[i % COLORS.length];
+    /* slight skew via transform */
+    const skew = (Math.random() * 16 - 8).toFixed(1);
+    chars += `<text x="${x}" y="${y}"
+      transform="rotate(${rot},${x},${y}) skewX(${skew})"
+      font-size="${size}"
+      fill="${fill}"
+      font-family="'Arial Black','Arial',sans-serif"
+      font-weight="900"
+      text-anchor="middle"
+      dominant-baseline="middle"
+      letter-spacing="1">${word[i]}</text>`;
+  }
+
+  /* --- wavy clip path to add extra distortion --- */
+  const A = 3 + Math.random() * 3;
+  const f = 0.04 + Math.random() * 0.03;
+  let wavePath = `M0,0 L${W},0 L${W},${H} `;
+  for (let x = W; x >= 0; x -= 4) {
+    wavePath += `L${x},${(H + A * Math.sin(x * f)).toFixed(1)} `;
+  }
+  wavePath += 'Z';
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="background:${bg};border-radius:8px;display:block">
+  <defs>
+    <clipPath id="wc"><path d="${wavePath}"/></clipPath>
+  </defs>
+  <g clip-path="url(#wc)">${lines}${dots}${chars}</g>
+</svg>`;
+}
+
 router.get('/captcha', captchaLimiter, (req, res) => {
-  const ops      = ['+', '-', '*'];
-  const op       = ops[Math.floor(Math.random() * ops.length)];
-  const a        = Math.floor(Math.random() * 9) + 1;
-  const b        = Math.floor(Math.random() * 9) + 1;
-  const [hi, lo] = [Math.max(a, b), Math.min(a, b)];
-
-  let answer, question;
-  if (op === '+')      { answer = a + b;   question = `${a} + ${b}`; }
-  else if (op === '-') { answer = hi - lo; question = `${hi} - ${lo}`; }
-  else                 { answer = a * b;   question = `${a} × ${b}`; }
-
-  req.session.captchaAnswer  = answer;
+  const word = generateCaptchaWord(6);
+  req.session.captchaAnswer  = word.toUpperCase();
   req.session.captchaExpires = Date.now() + 10 * 60 * 1000;
 
   res.setHeader('Content-Type', 'image/svg+xml');
   res.setHeader('Cache-Control', 'no-store');
-  res.send(buildCaptchaSVG(question));
+  res.send(buildWordCaptchaSVG(word));
 });
 
-function buildCaptchaSVG(question) {
-  const W = 220, H = 64;
-  const chars = question.split('');
-  let texts = '', lines = '', dots = '';
-  chars.forEach((ch, i) => {
-    const x  = 18 + i * 24 + (Math.random() * 6 - 3);
-    const y  = 38 + (Math.random() * 10 - 5);
-    const r  = (Math.random() * 22 - 11).toFixed(1);
-    const fs = 22 + Math.floor(Math.random() * 8);
-    const colors = ['#1a1a2e','#16213e','#0f3460','#4a235a','#1b4332'];
-    const fill   = colors[Math.floor(Math.random() * colors.length)];
-    texts += `<text x="${x}" y="${y}" transform="rotate(${r},${x},${y})" font-size="${fs}" fill="${fill}" font-family="Arial" font-weight="bold">${ch}</text>`;
-  });
-  for (let i = 0; i < 6; i++) {
-    lines += `<line x1="${rand(W)}" y1="${rand(H)}" x2="${rand(W)}" y2="${rand(H)}" stroke="#bbb" stroke-width="1" opacity="0.45"/>`;
-  }
-  for (let i = 0; i < 35; i++) {
-    dots += `<circle cx="${rand(W)}" cy="${rand(H)}" r="1.2" fill="#aaa" opacity="0.45"/>`;
-  }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="background:#eef0f8;border-radius:6px">${lines}${dots}${texts}</svg>`;
-}
 function rand(n) { return (Math.random() * n).toFixed(1); }
 
 /* ═══════════════════════════════════════════════════════════
@@ -104,13 +154,13 @@ router.post('/register', registrationLimiter, registerValidation, async (req, re
     /* ── 2. CAPTCHA verification ── */
     if (!req.session.captchaAnswer || Date.now() > req.session.captchaExpires) {
       delete req.session.captchaAnswer;
-      return res.status(400).json({ success: false, message: 'CAPTCHA expired. Please refresh and try again.' });
+      return res.status(400).json({ success: false, message: 'CAPTCHA expired. Please refresh the image and try again.' });
     }
-    if (parseInt(captchaAnswer, 10) !== req.session.captchaAnswer) {
+    if (!captchaAnswer || captchaAnswer.toString().trim().toUpperCase() !== req.session.captchaAnswer) {
       delete req.session.captchaAnswer;
       getDb().prepare('INSERT INTO suspicious_activities (type, description, ip_address) VALUES (?,?,?)')
-        .run('CAPTCHA_FAIL', `Failed CAPTCHA for email: ${email}`, ip);
-      return res.status(400).json({ success: false, message: 'Incorrect CAPTCHA answer. Please try again.' });
+        .run('CAPTCHA_FAIL', `Failed word-CAPTCHA for email: ${email}`, ip);
+      return res.status(400).json({ success: false, message: 'Incorrect CAPTCHA text. Please try again.' });
     }
     delete req.session.captchaAnswer;
 

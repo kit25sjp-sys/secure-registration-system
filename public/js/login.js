@@ -46,10 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const passIn    = document.getElementById('passwordInput');
   const submitBtn = document.getElementById('submitBtn');
 
-  /* Show success banner when redirected from OTP verify page */
+  /* Show success banner when redirected from OTP verify or password-change */
   const params = new URLSearchParams(window.location.search);
   if (params.get('verified') === '1') {
     showAlert('✅ Email verified successfully! You can now log in.', 'success');
+  }
+  if (params.get('passwordChanged') === '1') {
+    showAlert('🔒 Password changed successfully! Please sign in with your new password.', 'success');
   }
 
   form.addEventListener('submit', async (e) => {

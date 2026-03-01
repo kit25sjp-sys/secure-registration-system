@@ -202,14 +202,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (data.success) {
         showAlert(
           `<strong>Password changed successfully!</strong><br>
-           Your account is now secured with your new password.
-           You will be redirected to the dashboard.`,
+           You will be redirected to the login page to sign in with your new password.`,
           'success'
         );
         /* Clear the form fields so the password is gone from the DOM */
         form.reset();
         updateStrengthUI(0, {});
-        setTimeout(() => window.location.replace('/dashboard'), 2800);
+        submitBtn.disabled = true;
+        setTimeout(() => window.location.replace('/login?passwordChanged=1'), 2500);
       } else {
         /* Check for the password-reuse rejection specifically */
         if (data.message && data.message.toLowerCase().includes('cannot reuse')) {

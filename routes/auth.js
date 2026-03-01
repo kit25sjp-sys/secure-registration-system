@@ -497,7 +497,11 @@ router.post('/change-password', async (req, res) => {
       }
     }
 
-    return res.json({ success: true, message: 'Password changed successfully! Your account is now secured with the new password.' });
+    /* ── 7. Destroy session – user must log in again with new password ── */
+    req.session.destroy(() => {
+      res.clearCookie('connect.sid');
+      return res.json({ success: true, message: 'Password changed successfully! Please log in with your new password.' });
+    });
 
   } catch (err) {
     console.error('Change password error:', err);

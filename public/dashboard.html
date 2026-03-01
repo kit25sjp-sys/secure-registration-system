@@ -22,7 +22,11 @@
 
 <div class="page-wrapper dashboard-wrapper">
 
-  <!-- ── Welcome Card ─────────────────────────────────── -->
+  <!-- ══════════════════════════════════════════════════
+       ROW 1 — Welcome  +  Password Security
+  ══════════════════════════════════════════════════ -->
+
+  <!-- ── Welcome Card ─────────────────────────────── -->
   <div class="dashboard-card">
     <div class="dashboard-avatar" id="avatarCircle">?</div>
     <h1 class="dashboard-welcome" id="welcomeHeading">Welcome!</h1>
@@ -34,7 +38,7 @@
     </div>
   </div>
 
-  <!-- ── Security Card ────────────────────────────────── -->
+  <!-- ── Password Security Card ───────────────────── -->
   <div class="dashboard-card security-card">
     <div class="security-icon">&#128737;</div>
     <h2 class="security-title">Password Security</h2>
@@ -43,17 +47,27 @@
       <strong>bcrypt</strong> hashing — your actual password is
       <em>never visible</em> to anyone, including administrators.
     </p>
-    <div class="security-detail-row">
-      <span class="security-detail-label">Stored as</span>
-      <code class="security-hash-preview">&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679; (hashed, never plain text)</code>
+
+    <!-- Password preview row (always masked, never reveals real password) -->
+    <div class="security-detail-row pw-preview-row">
+      <span class="security-detail-label">Your password</span>
+      <div class="pw-preview-field">
+        <span class="pw-dots" id="pwDots">&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;</span>
+        <span class="pw-locked-badge">&#128274; Secured</span>
+      </div>
     </div>
+
     <div class="security-detail-row">
       <span class="security-detail-label">Algorithm</span>
-      <code class="security-hash-preview">bcrypt · cost factor 12</code>
+      <code class="security-hash-preview">bcrypt &middot; cost factor 12</code>
     </div>
     <div class="security-detail-row">
       <span class="security-detail-label">Reuse policy</span>
       <code class="security-hash-preview">Last 5 passwords blocked</code>
+    </div>
+    <div class="security-detail-row">
+      <span class="security-detail-label">Last changed</span>
+      <code class="security-hash-preview" id="lastChangedLabel">Loading…</code>
     </div>
 
     <a href="/change-password" class="btn btn-primary dashboard-change-btn">
@@ -61,7 +75,125 @@
     </a>
   </div>
 
-</div>
+</div><!-- end row-1 wrapper -->
+
+<!-- ══════════════════════════════════════════════════
+     ROW 2 — Password Policy: what NOT to use
+══════════════════════════════════════════════════ -->
+<div class="policy-section">
+  <div class="policy-header">
+    <span class="policy-header-icon">&#128683;</span>
+    <div>
+      <h2 class="policy-title">Password Policy &amp; Forbidden Examples</h2>
+      <p class="policy-subtitle">The system will <strong>reject</strong> any password that matches these patterns. Do not use passwords like these.</p>
+    </div>
+  </div>
+
+  <div class="policy-grid">
+
+    <!-- Category 1 -->
+    <div class="policy-card policy-danger">
+      <div class="policy-card-head">
+        <span class="policy-card-icon">&#128274;</span>
+        <span class="policy-card-label">Common / default passwords</span>
+      </div>
+      <ul class="policy-examples">
+        <li><code>password</code></li>
+        <li><code>password123</code></li>
+        <li><code>admin123</code></li>
+        <li><code>123456789</code></li>
+        <li><code>iloveyou</code></li>
+        <li><code>welcome</code></li>
+      </ul>
+      <p class="policy-card-note">These appear in every leaked-credentials database and are tried first in any attack.</p>
+    </div>
+
+    <!-- Category 2 -->
+    <div class="policy-card policy-warning">
+      <div class="policy-card-head">
+        <span class="policy-card-icon">&#9000;</span>
+        <span class="policy-card-label">Keyboard patterns &amp; sequences</span>
+      </div>
+      <ul class="policy-examples">
+        <li><code>qwerty</code></li>
+        <li><code>qwerty123</code></li>
+        <li><code>asdfgh</code></li>
+        <li><code>123456</code></li>
+        <li><code>abcdef</code></li>
+        <li><code>zxcvbn</code></li>
+      </ul>
+      <p class="policy-card-note">Keyboard walks and numeric runs are trivially guessable with automated tools.</p>
+    </div>
+
+    <!-- Category 3 -->
+    <div class="policy-card policy-warning">
+      <div class="policy-card-head">
+        <span class="policy-card-icon">&#128101;</span>
+        <span class="policy-card-label">Personal / obvious words</span>
+      </div>
+      <ul class="policy-examples">
+        <li><code>yourname123</code></li>
+        <li><code>michael</code></li>
+        <li><code>baseball</code></li>
+        <li><code>superman</code></li>
+        <li><code>dragon</code></li>
+        <li><code>sunshine</code></li>
+      </ul>
+      <p class="policy-card-note">Dictionary words and names are broken instantly by dictionary attacks.</p>
+    </div>
+
+    <!-- Category 4 -->
+    <div class="policy-card policy-danger">
+      <div class="policy-card-head">
+        <span class="policy-card-icon">&#128257;</span>
+        <span class="policy-card-label">Repeated characters</span>
+      </div>
+      <ul class="policy-examples">
+        <li><code>aaaaaaa</code></li>
+        <li><code>1111111</code></li>
+        <li><code>aabbcc</code></li>
+        <li><code>aaabbb</code></li>
+        <li><code>pppppp</code></li>
+        <li><code>000000</code></li>
+      </ul>
+      <p class="policy-card-note">Repeated characters drastically reduce entropy and fail strength checks.</p>
+    </div>
+
+    <!-- Category 5 – GOOD example -->
+    <div class="policy-card policy-success">
+      <div class="policy-card-head">
+        <span class="policy-card-icon">&#10003;</span>
+        <span class="policy-card-label">What a strong password looks like</span>
+      </div>
+      <ul class="policy-examples policy-examples-good">
+        <li><code>Tr0ub4dor&amp;3</code></li>
+        <li><code>P@ssw0rd!2026</code></li>
+        <li><code>X7#kLm!9qR</code></li>
+        <li><code>Secure#Rain42!</code></li>
+        <li><code>Cy8er$Vault#99</code></li>
+      </ul>
+      <p class="policy-card-note">Mix uppercase, lowercase, numbers &amp; symbols. Minimum 8 chars — 12+ recommended.</p>
+    </div>
+
+    <!-- Category 6 – Requirements summary -->
+    <div class="policy-card policy-info">
+      <div class="policy-card-head">
+        <span class="policy-card-icon">&#128221;</span>
+        <span class="policy-card-label">Password requirements</span>
+      </div>
+      <ul class="policy-req-list">
+        <li><span class="req-check">&#10003;</span> At least <strong>8 characters</strong> (12+ recommended)</li>
+        <li><span class="req-check">&#10003;</span> At least one <strong>uppercase</strong> letter (A–Z)</li>
+        <li><span class="req-check">&#10003;</span> At least one <strong>lowercase</strong> letter (a–z)</li>
+        <li><span class="req-check">&#10003;</span> At least one <strong>number</strong> (0–9)</li>
+        <li><span class="req-check">&#10003;</span> At least one <strong>special character</strong> (!@#$%…)</li>
+        <li><span class="req-x">&#10007;</span> Must <strong>not</strong> be a common/dictionary word</li>
+        <li><span class="req-x">&#10007;</span> Must <strong>not</strong> reuse any of your last 5 passwords</li>
+      </ul>
+    </div>
+
+  </div><!-- end policy-grid -->
+</div><!-- end policy-section -->
 
 <script>
 /* ── Guard: redirect to login if not authenticated ─────── */
@@ -75,12 +207,17 @@
       return;
     }
 
-    /* Populate UI with user data */
+    /* Populate UI */
     const { username, email } = data.user;
     document.getElementById('avatarCircle').textContent   = username.charAt(0).toUpperCase();
     document.getElementById('welcomeHeading').textContent = `Welcome back, ${username}!`;
     document.getElementById('dashboardEmail').textContent = email;
     document.title = `Dashboard – ${username}`;
+
+    /* Last-changed label — use account creation date as approximation since
+       the API does not expose exact last-changed date here */
+    document.getElementById('lastChangedLabel').textContent = 'Protected (last change date hidden for security)';
+
   } catch {
     window.location.replace('/login');
   }

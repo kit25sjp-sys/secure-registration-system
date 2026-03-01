@@ -33,13 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Wire digit inputs
   wireDigitInputs();
 
-  // Show demo OTP from sessionStorage (set by register.js)
-  const demoOtp = sessionStorage.getItem('demoOtp');
-  if (demoOtp) {
-    showDemoOtp(demoOtp);
-    sessionStorage.removeItem('demoOtp');
-  }
-
   // Start countdown
   startCountdown();
 
@@ -47,14 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.otp-digit')[0].focus();
 });
 
-// ── Demo OTP display ─────────────────────────────────────────────────────
-function showDemoOtp(otp) {
-  const box  = document.getElementById('demoOtpBox');
-  const code = document.getElementById('demoOtpCode');
-  if (!box || !code) return;
-  code.textContent = otp;
-  box.classList.add('visible');
-}
+// ── Demo OTP display (no-op: OTPs are now delivered by Gmail SMTP) ────────
+function showDemoOtp(_otp) { /* intentionally empty */ }
 
 // ── Helpers ──────────────────────────────────────────────────────
 function maskEmail(e) {
@@ -277,10 +264,7 @@ async function resendOTP() {
       setDigitsError(false);
       document.getElementById('verifyBtn').disabled = false;
       startCountdown();
-      showAlert('success', '✅ New OTP generated!');
-
-      // Show new demo OTP
-      if (data.otp) showDemoOtp(data.otp);
+      showAlert('success', '✅ New OTP sent to your email!');
 
       // Cooldown before next resend
       startResendCooldown();

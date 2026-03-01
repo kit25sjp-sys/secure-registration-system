@@ -1,30 +1,42 @@
 const nodemailer = require('nodemailer');
 
 /* ──────────────────────────────────────────────────────────────
-   Build the SMTP transporter.
-   If EMAIL_HOST is not configured, falls back to Ethereal
-   (a free fake SMTP service for development/demo).
+   Build the Gmail SMTP transporter.
+   Requires EMAIL_USER (Gmail address) and EMAIL_PASS (App Password)
+   in .env.  Falls back to Ethereal if credentials are not set.
+
+   Gmail App Password setup:
+     myaccount.google.com → Security → 2-Step Verification → App passwords
+     Select app: Mail  |  Select device: Other → Generate
 ──────────────────────────────────────────────────────────────── */
+function isGmailConfigured() {
+  return !!(
+    process.env.EMAIL_USER &&
+    process.env.EMAIL_PASS &&
+    process.env.EMAIL_PASS !== 'your-16-char-app-password'
+  );
+}
+
 async function createTransporter() {
-  if (!process.env.EMAIL_HOST) {
-    /* Auto-generate a one-time Ethereal test account */
-    const testAccount = await nodemailer.createTestAccount();
+  if (isGmailConfigured()) {
+    /* ── Gmail SMTP via service shorthand ── */
     return nodemailer.createTransport({
-      host:   'smtp.ethereal.email',
-      port:   587,
-      secure: false,
-      auth: { user: testAccount.user, pass: testAccount.pass },
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,   // App Password (not your login password)
+      },
     });
   }
 
+  /* ── Fallback: Ethereal (dev / demo) ── */
+  console.warn('⚠️  EMAIL_PASS not set – falling back to Ethereal demo SMTP.');
+  const testAccount = await nodemailer.createTestAccount();
   return nodemailer.createTransport({
-    host:   process.env.EMAIL_HOST,
-    port:   parseInt(process.env.EMAIL_PORT, 10) || 587,
-    secure: process.env.EMAIL_SECURE === 'true',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
+    host:   'smtp.ethereal.email',
+    port:   587,
+    secure: false,
+    auth: { user: testAccount.user, pass: testAccount.pass },
   });
 }
 
@@ -165,4 +177,4 @@ async function sendOTPEmail(email, username, otp) {
   return info;
 }
 
-module.exports = { sendVerificationEmail, sendOTPEmail };
+module.exports = { sendVerificationEmail, sendOTPEmail, isGmailConfigured };

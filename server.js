@@ -103,11 +103,18 @@ app.use((err, _req, res, _next) => {
 async function startServer() {
   try {
     await initDatabase();
+    const { isGmailConfigured } = require('./utils/emailService');
     const server = app.listen(PORT, () => {
       console.log(`\n🔒  Secure Registration System`);
       console.log(`    http://localhost:${PORT}\n`);
       console.log(`📊  Admin Panel  → http://localhost:${PORT}/admin`);
       console.log(`    Credentials  → admin / Admin@123456\n`);
+      if (isGmailConfigured()) {
+        console.log(`📧  Email       → Gmail SMTP (${process.env.EMAIL_USER})`);
+      } else {
+        console.log(`📧  Email       → Ethereal demo (set EMAIL_PASS in .env for real Gmail)`);
+      }
+      console.log('');
     });
 
     server.on('error', (err) => {

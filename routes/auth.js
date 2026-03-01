@@ -6,6 +6,7 @@ const { body, validationResult } = require('express-validator');
 
 const { getDb }                      = require('../database/db');
 const { checkPasswordStrength }      = require('../utils/passwordUtils');
+const { sendOTPEmail }               = require('../utils/emailService');
 const {
   registrationLimiter, loginLimiter,
   captchaLimiter, otpResendLimiter, otpVerifyLimiter,
@@ -138,11 +139,20 @@ router.post('/register', registrationLimiter, registerValidation, async (req, re
       const otpExpires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       db.prepare('UPDATE users SET otp_hash=?, otp_expires=?, otp_attempts=0 WHERE id=?')
         .run(otpHash, otpExpires, dupEmail.id);
+
+      /* Send fresh OTP email */
+      const existingUser = db.prepare('SELECT username FROM users WHERE id=?').get(dupEmail.id);
+      try {
+        await sendOTPEmail(email, existingUser.username, otp);
+        console.log(`📧  OTP re-sent to ${email}`);
+      } catch (emailErr) {
+        console.error('Failed to send OTP email:', emailErr.message);
+      }
+
       return res.status(200).json({
         success: true,
-        message: 'A fresh OTP has been generated. Use the code shown on the verification page.',
+        message: 'A fresh OTP has been sent to your email address.',
         email,
-        otp,
       });
     }
 
@@ -165,11 +175,19 @@ router.post('/register', registrationLimiter, registerValidation, async (req, re
     db.prepare('INSERT INTO password_history (user_id, password_hash) VALUES (?, ?)')
       .run(result.lastInsertRowid, passwordHash);
 
+    /* ── 9. Send OTP email ── */
+    try {
+      await sendOTPEmail(email, username, otp);
+      console.log(`📧  OTP sent to ${email}`);
+    } catch (emailErr) {
+      console.error('Failed to send OTP email:', emailErr.message);
+      /* Registration succeeded even if email fails – user can resend */
+    }
+
     return res.status(201).json({
       success: true,
-      message: 'Registration successful! Use the OTP code shown on the verification page.',
+      message: 'Registration successful! A 6-digit OTP has been sent to your email address.',
       email,
-      otp,
     });
 
   } catch (err) {
@@ -268,10 +286,17 @@ router.post('/resend-otp', otpResendLimiter, async (req, res) => {
     db.prepare('UPDATE users SET otp_hash=?, otp_expires=?, otp_attempts=0 WHERE id=?')
       .run(otpHash, otpExpires, user.id);
 
+    /* Send new OTP email */
+    try {
+      await sendOTPEmail(email, user.username, otp);
+      console.log(`📧  OTP re-sent to ${email}`);
+    } catch (emailErr) {
+      console.error('Failed to resend OTP email:', emailErr.message);
+    }
+
     return res.json({
       success: true,
-      message: 'A new OTP has been generated.',
-      otp,
+      message: 'A new OTP has been sent to your email address.',
     });
 
   } catch (err) {

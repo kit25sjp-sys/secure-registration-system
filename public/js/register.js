@@ -290,8 +290,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await resp.json();
 
       if (data.success) {
-        /* Store demo OTP for display on verify page */
-        if (data.otp) sessionStorage.setItem('demoOtp', data.otp);
         window.location.href = `/otp-verify?email=${encodeURIComponent(data.email)}`;
         return;
       } else {

@@ -34,8 +34,11 @@
 
     <div class="dashboard-badges">
       <span class="badge badge-success">&#128274; Account Verified</span>
-      <span class="badge badge-info">&#128100; Standard User</span>
+      <span class="badge" id="userRoleBadge">&#128100; Loading…</span>
     </div>
+
+    <!-- Role-based action: shows for editor/admin only -->
+    <div id="roleAccessSection" style="display:none;margin-top:20px"></div>
   </div>
 
   <!-- ── Password Security Card ───────────────────── -->
@@ -207,16 +210,45 @@
       return;
     }
 
-    /* Populate UI */
-    const { username, email } = data.user;
+    const { username, email, role } = data.user;
     document.getElementById('avatarCircle').textContent   = username.charAt(0).toUpperCase();
     document.getElementById('welcomeHeading').textContent = `Welcome back, ${username}!`;
     document.getElementById('dashboardEmail').textContent = email;
     document.title = `Dashboard – ${username}`;
 
-    /* Last-changed label — use account creation date as approximation since
-       the API does not expose exact last-changed date here */
+    /* Dynamic role badge */
+    const roleBadge   = document.getElementById('userRoleBadge');
+    const roleCfg     = {
+      admin:  { cls: 'badge badge-danger',   icon: '\uD83D\uDEE1\uFE0F', label: 'Administrator' },
+      editor: { cls: 'badge badge-warning',  icon: '\u270F\uFE0F',       label: 'Editor'        },
+      user:   { cls: 'badge badge-info',     icon: '\uD83D\uDC64',       label: 'Standard User' },
+    };
+    const rc = roleCfg[role] || roleCfg.user;
+    roleBadge.className   = rc.cls;
+    roleBadge.textContent = `${rc.icon} ${rc.label}`;
+
+    /* Last-changed label */
     document.getElementById('lastChangedLabel').textContent = 'Protected (last change date hidden for security)';
+
+    /* Role-specific access panel */
+    const accessSection = document.getElementById('roleAccessSection');
+    if (role === 'admin') {
+      accessSection.style.display = 'block';
+      accessSection.innerHTML = `
+        <div style="background:#fff0f0;border:1.5px solid #e74c3c;border-radius:10px;padding:16px 20px">
+          <p style="margin:0 0 10px;font-size:.92rem;font-weight:700;color:#c0392b">&#128737;&#65039; Admin Access</p>
+          <p style="margin:0 0 14px;font-size:.84rem;color:#666">Your account has full administrator privileges.</p>
+          <a href="/admin" class="btn btn-danger" style="text-decoration:none">&#9881;&#65039; Open Admin Panel</a>
+        </div>`;
+    } else if (role === 'editor') {
+      accessSection.style.display = 'block';
+      accessSection.innerHTML = `
+        <div style="background:#fffbf0;border:1.5px solid #f39c12;border-radius:10px;padding:16px 20px">
+          <p style="margin:0 0 10px;font-size:.92rem;font-weight:700;color:#d68910">&#9999;&#65039; Editor Access</p>
+          <p style="margin:0 0 14px;font-size:.84rem;color:#666">You have editor privileges — view users and site content.</p>
+          <a href="/editor" class="btn btn-warning" style="text-decoration:none">&#9999;&#65039; Open Editor Panel</a>
+        </div>`;
+    }
 
   } catch {
     window.location.replace('/login');

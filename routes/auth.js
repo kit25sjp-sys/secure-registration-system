@@ -425,11 +425,12 @@ router.post('/login', loginLimiter, async (req, res) => {
     req.session.userId   = user.id;
     req.session.username = user.username;
     req.session.email    = user.email;
+    req.session.role     = user.role || 'user';
 
     return res.json({
       success: true,
       message: 'Login successful!',
-      user: { id: user.id, username: user.username, email: user.email },
+      user: { id: user.id, username: user.username, email: user.email, role: user.role || 'user' },
     });
 
   } catch (err) {
@@ -439,20 +440,38 @@ router.post('/login', loginLimiter, async (req, res) => {
 });
 
 /* ═══════════════════════════════════════════════════════════
-   GET /api/auth/me  –  return session-based current user
+   GET /api/auth/me  –  fetch fresh user data (incl. role) from DB
 ═══════════════════════════════════════════════════════════ */
 router.get('/me', (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ success: false, message: 'Not authenticated.' });
   }
-  return res.json({
-    success:  true,
-    user: {
-      id:       req.session.userId,
-      username: req.session.username,
-      email:    req.session.email,
-    },
-  });
+  try {
+    const db   = getDb();
+    const user = db.prepare('SELECT id, username, email, role, is_active FROM users WHERE id = ?').get(req.session.userId);
+    if (!user) {
+      req.session.destroy(() => {});
+      return res.status(401).json({ success: false, message: 'Account not found.' });
+    }
+    if (!user.is_active) {
+      req.session.destroy(() => {});
+      return res.status(403).json({ success: false, message: 'Account has been deactivated.' });
+    }
+    /* Keep session role in sync with DB */
+    req.session.role = user.role || 'user';
+    return res.json({
+      success: true,
+      user: {
+        id:       user.id,
+        username: user.username,
+        email:    user.email,
+        role:     user.role || 'user',
+      },
+    });
+  } catch (err) {
+    console.error('/me error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to load user.' });
+  }
 });
 
 /* ═══════════════════════════════════════════════════════════

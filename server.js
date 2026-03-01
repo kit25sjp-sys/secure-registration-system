@@ -6,8 +6,9 @@ const session    = require('express-session');
 const cookieParser = require('cookie-parser');
 const path       = require('path');
 
-const authRoutes  = require('./routes/auth');
-const adminRoutes = require('./routes/admin');
+const authRoutes   = require('./routes/auth');
+const adminRoutes  = require('./routes/admin');
+const editorRoutes = require('./routes/editor');
 const { initDatabase } = require('./database/db');
 
 const app  = express();
@@ -77,8 +78,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 /* ──────────────────────────────────────────────
    API routes
 ────────────────────────────────────────────── */
-app.use('/api/auth',  authRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/auth',   authRoutes);
+app.use('/api/admin',  adminRoutes);
+app.use('/api/editor', editorRoutes);
 
 /* ──────────────────────────────────────────────
    Page routes
@@ -88,6 +90,7 @@ app.get('/login',           (_req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/otp-verify',      (_req, res) => res.sendFile(path.join(__dirname, 'public', 'otp-verify.html')));
 app.get('/admin',           (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/dashboard',       (_req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+app.get('/editor',          (_req, res) => res.sendFile(path.join(__dirname, 'public', 'editor.html')));
 app.get('/change-password', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'change-password.html')));
 
 /* ──────────────────────────────────────────────

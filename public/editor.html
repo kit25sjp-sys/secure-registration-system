@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor Panel – SecureReg</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="top-nav-logo">
+    <span>&#128274;</span>
+    <span>SecureReg</span>
+  </div>
+  <div class="top-nav-links">
+    <a href="/dashboard" class="nav-link">&#128101; Dashboard</a>
+    <a href="/editor" class="nav-link nav-link-active">&#9999;&#65039; Editor</a>
+    <button id="logoutBtn" class="nav-link nav-link-logout btn-nav-logout">&#128682; Logout</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════
+     Header card
+═══════════════════════════════════════════════════════ -->
+<div class="page-wrapper dashboard-wrapper">
+  <div class="dashboard-card" style="grid-column:1/-1">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <div class="dashboard-avatar" id="editorAvatar">?</div>
+      <div>
+        <h1 class="dashboard-welcome" id="editorHeading">Editor Panel</h1>
+        <p class="dashboard-email" id="editorEmail">Loading…</p>
+        <div class="dashboard-badges" style="margin-top:10px">
+          <span class="badge" id="editorRoleBadge">&#9999;&#65039; Editor</span>
+          <span class="badge badge-secondary">&#128274; Read Access</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Editor notice -->
+    <div style="margin-top:20px;padding:14px 18px;background:#fffbf0;border:1.5px solid #f39c12;border-radius:10px;font-size:.85rem;color:#7d5a00;">
+      &#9888;&#65039; <strong>Editor Role:</strong> You can view all registered users and site statistics.
+      Role changes and user management actions are restricted to Administrators.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     Stats row
+═══════════════════════════════════════════════════════ -->
+<div class="stats-grid" style="max-width:1200px;margin:0 auto 24px;padding:0 24px">
+  <div class="stat-card c-primary">
+    <span class="stat-icon">&#128101;</span>
+    <span class="stat-value" id="eStat-total">—</span>
+    <span class="stat-label">Total Users</span>
+  </div>
+  <div class="stat-card c-success">
+    <span class="stat-icon">&#10003;</span>
+    <span class="stat-value" id="eStat-verified">—</span>
+    <span class="stat-label">Verified</span>
+  </div>
+  <div class="stat-card c-info">
+    <span class="stat-icon">&#128994;</span>
+    <span class="stat-value" id="eStat-active">—</span>
+    <span class="stat-label">Active</span>
+  </div>
+  <div class="stat-card c-warning">
+    <span class="stat-icon">&#128197;</span>
+    <span class="stat-value" id="eStat-today">—</span>
+    <span class="stat-label">Today's Signups</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     Users table  (read-only)
+═══════════════════════════════════════════════════════ -->
+<div style="max-width:1200px;margin:0 auto 48px;padding:0 24px">
+  <div class="table-card">
+    <div class="table-card-header">
+      <span class="table-card-title">
+        &#128101; Registered Users
+        <span style="font-size:.8rem;color:#999;font-weight:400">(read-only view)</span>
+      </span>
+      <input type="search" id="editorSearch" class="search-input" placeholder="Search by name or email…">
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Verified</th>
+            <th>Status</th>
+            <th>Registered</th>
+            <th>Last Login</th>
+          </tr>
+        </thead>
+        <tbody id="editorUsersBody">
+          <tr><td colspan="8"><div class="loading-spinner"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Auth guard: must be logged in AND have editor or admin role ─ */
+(async () => {
+  try {
+    const res  = await fetch('/api/auth/me', { credentials: 'include' });
+    const data = await res.json();
+
+    if (!data.success) {
+      window.location.replace('/login');
+      return;
+    }
+
+    const { username, email, role } = data.user;
+
+    /* Only editor and admin can access this page */
+    if (role !== 'editor' && role !== 'admin') {
+      window.location.replace('/dashboard');
+      return;
+    }
+
+    /* Populate header */
+    document.getElementById('editorAvatar').textContent  = username.charAt(0).toUpperCase();
+    document.getElementById('editorHeading').textContent = `Welcome, ${username}`;
+    document.getElementById('editorEmail').textContent   = email;
+    document.title = `Editor Panel – ${username}`;
+
+    /* Role badge */
+    const badge = document.getElementById('editorRoleBadge');
+    if (role === 'admin') {
+      badge.className   = 'badge badge-danger';
+      badge.textContent = '\uD83D\uDEE1\uFE0F Administrator';
+    } else {
+      badge.className   = 'badge badge-warning';
+      badge.textContent = '\u270F\uFE0F Editor';
+    }
+
+    /* Load data */
+    loadStats();
+    loadUsers();
+
+  } catch {
+    window.location.replace('/login');
+  }
+})();
+
+/* ── Stats ─────────────────────────────────────────────── */
+async function loadStats() {
+  try {
+    const res  = await fetch('/api/editor/stats', { credentials: 'include' });
+    const data = await res.json();
+    if (!data.success) return;
+    const s = data.stats;
+    document.getElementById('eStat-total').textContent    = s.totalUsers;
+    document.getElementById('eStat-verified').textContent = s.verifiedUsers;
+    document.getElementById('eStat-active').textContent   = s.activeUsers;
+    document.getElementById('eStat-today').textContent    = s.todayRegistrations;
+  } catch { /* silent */ }
+}
+
+/* ── Users table ────────────────────────────────────────── */
+let editorUsers = [];
+
+const ROLE_BADGE = {
+  admin:  '<span class="role-badge role-admin">Admin</span>',
+  editor: '<span class="role-badge role-editor">Editor</span>',
+  user:   '<span class="role-badge role-user">User</span>',
+};
+
+async function loadUsers() {
+  const tbody = document.getElementById('editorUsersBody');
+  try {
+    const res  = await fetch('/api/editor/users', { credentials: 'include' });
+    const data = await res.json();
+    if (!data.success) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Failed to load users.</td></tr>';
+      return;
+    }
+    editorUsers = data.users;
+    renderUsers(editorUsers);
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Network error.</td></tr>';
+  }
+}
+
+function renderUsers(users) {
+  const tbody = document.getElementById('editorUsersBody');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">&#128100;</div><p>No users found</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td><strong>#${u.id}</strong></td>
+      <td><strong>${esc(u.username)}</strong></td>
+      <td>${esc(u.email)}</td>
+      <td>${ROLE_BADGE[u.role] || ROLE_BADGE.user}</td>
+      <td>${u.is_verified
+        ? '<span class="badge badge-success">&#10003; Verified</span>'
+        : '<span class="badge badge-warning">&#9203; Pending</span>'}</td>
+      <td>${u.is_active
+        ? '<span class="badge badge-success">Active</span>'
+        : '<span class="badge badge-danger">Inactive</span>'}</td>
+      <td class="text-muted">${fmtDate(u.created_at)}</td>
+      <td class="text-muted">${u.last_login ? fmtDate(u.last_login) : '—'}</td>
+    </tr>`).join('');
+}
+
+document.getElementById('editorSearch').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  renderUsers(q
+    ? editorUsers.filter(u =>
+        u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+    : editorUsers);
+});
+
+/* ── Logout ─────────────────────────────────────────────── */
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); }
+  finally { window.location.replace('/login'); }
+});
+
+/* ── Utilities ──────────────────────────────────────────── */
+function esc(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso.endsWith('Z') ? iso : iso + 'Z').toLocaleString(); }
+  catch { return iso; }
+}
+</script>
+
+</body>
+</html>

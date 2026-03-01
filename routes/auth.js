@@ -2,8 +2,6 @@ const express   = require('express');
 const router    = express.Router();
 const bcrypt    = require('bcryptjs');
 const crypto    = require('crypto');
-const https     = require('https');
-const qs        = require('querystring');
 const { body, validationResult } = require('express-validator');
 
 const { getDb }                      = require('../database/db');
@@ -358,51 +356,15 @@ router.post('/resend-otp', otpResendLimiter, async (req, res) => {
 });
 
 /* ═══════════════════════════════════════════════════════════
-   Helper – verify Google reCAPTCHA v2 token server-side
-═══════════════════════════════════════════════════════════ */
-function verifyRecaptcha(token) {
-  return new Promise((resolve) => {
-    const secret = process.env.RECAPTCHA_SECRET_KEY || '';
-    const body   = qs.stringify({ secret, response: token });
-    const opts   = {
-      hostname: 'www.google.com',
-      path:     '/recaptcha/api/siteverify',
-      method:   'POST',
-      headers:  { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) },
-    };
-    const req = https.request(opts, (r) => {
-      let data = '';
-      r.on('data', (c) => { data += c; });
-      r.on('end', () => {
-        try { resolve(JSON.parse(data)); }
-        catch { resolve({ success: false }); }
-      });
-    });
-    req.on('error', () => resolve({ success: false }));
-    req.write(body);
-    req.end();
-  });
-}
-
-/* ═══════════════════════════════════════════════════════════
    POST /api/auth/login
 ═══════════════════════════════════════════════════════════ */
 router.post('/login', loginLimiter, async (req, res) => {
   try {
-    const { email, password, recaptchaToken } = req.body;
+    const { email, password } = req.body;
     const ip = req.ip || req.connection.remoteAddress;
 
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email and password are required.' });
-    }
-
-    /* ── reCAPTCHA verification ── */
-    if (!recaptchaToken) {
-      return res.status(400).json({ success: false, message: 'Please complete the CAPTCHA verification.' });
-    }
-    const captchaResult = await verifyRecaptcha(recaptchaToken);
-    if (!captchaResult.success) {
-      return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
     }
 
     const sanitizedEmail = String(email).trim().toLowerCase();

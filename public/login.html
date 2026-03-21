@@ -10,13 +10,11 @@
 
 <nav class="top-nav">
   <div class="top-nav-logo">
-    <span>&#128274;</span>
     <span>SecureReg</span>
   </div>
   <div class="top-nav-links">
-    <a href="/" class="nav-link">&#128221; Register</a>
-    <a href="/login" class="nav-link nav-link-active">&#128274; Login</a>
-    <a href="/admin" class="nav-link nav-link-admin">&#9881;&#65039; Admin</a>
+    <a href="/" class="nav-link">Register</a>
+    <a href="/login" class="nav-link nav-link-active">Login</a>
   </div>
 </nav>
 
@@ -27,7 +25,6 @@
 
     <div class="auth-header">
       <div class="logo">
-        <span class="logo-icon">🔒</span>
         <span class="logo-text">SecureReg</span>
       </div>
       <h1 class="auth-title">Welcome Back</h1>
@@ -41,7 +38,7 @@
       <!-- Email -->
       <div class="form-group">
         <label for="emailInput" class="form-label">
-          <span class="label-icon">✉️</span> Email Address
+          Email Address
         </label>
         <div class="input-wrapper">
           <input type="email" id="emailInput" class="form-input"
@@ -54,7 +51,7 @@
       <!-- Password -->
       <div class="form-group">
         <label for="passwordInput" class="form-label">
-          <span class="label-icon">🔑</span> Password
+          <span class="label-icon"></span> Password
         </label>
         <div class="input-wrapper">
           <input type="password" id="passwordInput" class="form-input"
@@ -83,38 +80,38 @@
 
     <!-- Security note -->
     <div style="margin-top:24px;padding:14px;background:#fafafa;border:1px solid #e0e0e0;border-radius:8px;font-size:.78rem;color:#666;text-align:center">
-      🔒 Your connection is protected. Accounts are locked for 15 minutes after 5 failed attempts.
+       Your connection is protected. Accounts are locked for 15 minutes after 5 failed attempts.
     </div>
   </div>
 
   <!-- ═══ RIGHT: Decorative panel ════════════════════════ -->
   <div class="side-panel">
     <div class="side-content">
-      <h2>Your account is protected 🔐</h2>
+      <h2>Your account is protected </h2>
       <div class="feature-list">
         <div class="feature-item">
-          <span class="feature-icon">🛡️</span>
+          <span class="feature-icon"></span>
           <div>
             <h3>Brute-Force Protection</h3>
             <p>Accounts are automatically locked after repeated failed login attempts.</p>
           </div>
         </div>
         <div class="feature-item">
-          <span class="feature-icon">✉️</span>
+          <span class="feature-icon"></span>
           <div>
             <h3>Verified Accounts Only</h3>
             <p>Only email-verified users can access the system.</p>
           </div>
         </div>
         <div class="feature-item">
-          <span class="feature-icon">⚡</span>
+          <span class="feature-icon"></span>
           <div>
             <h3>Rate Limited</h3>
             <p>Excessive login requests from any IP are throttled automatically.</p>
           </div>
         </div>
         <div class="feature-item">
-          <span class="feature-icon">📊</span>
+          <span class="feature-icon"></span>
           <div>
             <h3>Login Monitoring</h3>
             <p>Every login attempt is logged and reviewed by the admin panel.</p>
@@ -126,6 +123,7 @@
 
 </div>
 
+<script src="/js/session-manager.js"></script>
 <script src="/js/login.js"></script>
 </body>
 </html>

@@ -26,6 +26,30 @@ function _makeEyeSVG(crossed) {
 
 function togglePassword() {} // no-op – now wired via addEventListener
 
+// Switch between logged-in accounts
+async function switchAccount(sessionId) {
+  try {
+    const session = SessionManager.getSessions()[sessionId];
+    if (!session) return;
+    
+    // Need to re-login this account on the backend
+    // For now, just update the active session and reload
+    SessionManager.setActiveSession(sessionId);
+    
+    showAlert(`Switched to <strong>${session.username}</strong>`, 'success');
+    setTimeout(() => {
+      const role = session.role || 'user';
+      const targetUrl = role === 'admin' ? '/admin.html' : (role === 'editor' ? '/editor.html' : '/dashboard');
+      window.location.replace(targetUrl);
+    }, 1000);
+  } catch (err) {
+    console.error('Error switching account:', err);
+    showAlert('Failed to switch account', 'error');
+  }
+}
+
+function togglePassword() {} // no-op – now wired via addEventListener
+
 document.addEventListener('DOMContentLoaded', () => {
   // Wire all password-toggle buttons
   document.querySelectorAll('.toggle-password').forEach(function(btn) {
@@ -45,6 +69,40 @@ document.addEventListener('DOMContentLoaded', () => {
   const emailIn   = document.getElementById('emailInput');
   const passIn    = document.getElementById('passwordInput');
   const submitBtn = document.getElementById('submitBtn');
+
+  // Check if there are already logged-in accounts and show them
+  const loggedInAccounts = SessionManager.getLoggedInAccounts();
+  if (loggedInAccounts.length > 0) {
+    const accountsList = loggedInAccounts.map(acc => 
+      `<div style="padding:8px;margin:4px 0;background:#f5f5f5;border-radius:4px;font-size:0.9rem;cursor:pointer" 
+            class="session-account" data-session-id="${acc.sessionId}">
+        <strong>${acc.username}</strong> (${acc.email}) ${acc.role === 'admin' ? '[Admin]' : ''}
+        ${acc.isActive ? '<span style="color:green"> ✓ Active</span>' : ''}
+      </div>`
+    ).join('');
+    
+    const sessionPanel = document.createElement('div');
+    sessionPanel.style.cssText = 'margin-bottom:20px;padding:12px;background:#e3f2fd;border:1px solid #90caf9;border-radius:8px;font-size:0.9rem;';
+    sessionPanel.innerHTML = `
+      <strong>Already logged in:</strong>
+      <div style="margin-top:8px;">${accountsList}</div>
+      <button type="button" id="logoutAllBtn" class="btn btn-sm btn-secondary" style="margin-top:8px;">Logout All</button>
+    `;
+    
+    const alertContainer = document.getElementById('alertContainer');
+    alertContainer.parentNode.insertBefore(sessionPanel, alertContainer.nextSibling);
+    
+    // Wire account switcher
+    document.querySelectorAll('.session-account').forEach(el => {
+      el.addEventListener('click', () => switchAccount(el.getAttribute('data-session-id')));
+    });
+    
+    // Wire logout all button
+    document.getElementById('logoutAllBtn').addEventListener('click', () => {
+      SessionManager.removeAllSessions();
+      location.reload();
+    });
+  }
 
   /* Show success banner when redirected from OTP verify or password-change */
   const params = new URLSearchParams(window.location.search);
@@ -104,10 +162,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (data.success) {
-        showAlert(`Welcome back, <strong>${data.user.username}</strong>! Redirecting to dashboard…`, 'success');
+        // Store session in SessionManager
+        const sessionId = 'session_' + Date.now();
+        SessionManager.addSession(sessionId, {
+          id: data.user.id,
+          username: data.user.username,
+          email: data.user.email,
+          role: data.user.role || 'user',
+        });
+
+        showAlert(`Welcome back, <strong>${data.user.username}</strong>!`, 'success');
+        
+        // Show redirect options
+        const role = data.user.role || 'user';
+        const targetUrl = role === 'admin' ? '/admin.html' : (role === 'editor' ? '/editor.html' : '/dashboard');
+        
         setTimeout(() => {
-          window.location.replace('/dashboard');
-        }, 1000);
+          window.location.replace(targetUrl);
+        }, 1500);
       } else {
         showAlert(data.message || 'Login failed. Please try again.', 'error');
         if (resp.status === 423) {

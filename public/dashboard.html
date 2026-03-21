@@ -10,13 +10,11 @@
 
 <nav class="top-nav">
   <div class="top-nav-logo">
-    <span>&#128274;</span>
     <span>SecureReg</span>
   </div>
   <div class="top-nav-links">
-    <a href="/dashboard" class="nav-link nav-link-active">&#128101; Dashboard</a>
-    <a href="/admin" class="nav-link nav-link-admin">&#9881;&#65039; Admin</a>
-    <button id="logoutBtn" class="nav-link nav-link-logout btn-nav-logout">&#128682; Logout</button>
+    <a href="/dashboard" class="nav-link nav-link-active">Dashboard</a>
+    <button id="logoutBtn" class="nav-link nav-link-logout btn-nav-logout">Logout</button>
   </div>
 </nav>
 
@@ -33,8 +31,8 @@
     <p class="dashboard-email" id="dashboardEmail">Loading…</p>
 
     <div class="dashboard-badges">
-      <span class="badge badge-success">&#128274; Account Verified</span>
-      <span class="badge" id="userRoleBadge">&#128100; Loading…</span>
+      <span class="badge badge-success">Account Verified</span>
+      <span class="badge" id="userRoleBadge">Loading…</span>
     </div>
 
     <!-- Role-based action: shows for editor/admin only -->
@@ -43,7 +41,7 @@
 
   <!-- ── Password Security Card ───────────────────── -->
   <div class="dashboard-card security-card">
-    <div class="security-icon">&#128737;</div>
+    <div class="security-icon"></div>
     <h2 class="security-title">Password Security</h2>
     <p class="security-message">
       Your password is <strong>securely protected</strong>. It is stored using
@@ -55,8 +53,8 @@
     <div class="security-detail-row pw-preview-row">
       <span class="security-detail-label">Your password</span>
       <div class="pw-preview-field">
-        <span class="pw-dots" id="pwDots">&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;</span>
-        <span class="pw-locked-badge">&#128274; Secured</span>
+        <span class="pw-dots" id="pwDots">••••••••••••</span>
+        <span class="pw-locked-badge">Secured</span>
       </div>
     </div>
 
@@ -74,7 +72,7 @@
     </div>
 
     <a href="/change-password" class="btn btn-primary dashboard-change-btn">
-      &#128273; Change Password
+      Change Password
     </a>
   </div>
 
@@ -265,5 +263,6 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 });
 </script>
 
+<script src="/js/session-manager.js"></script>
 </body>
 </html>

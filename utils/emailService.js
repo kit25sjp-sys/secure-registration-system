@@ -67,7 +67,7 @@ async function sendVerificationEmail(email, username, token) {
 </head>
 <body>
   <div class="wrap">
-    <div class="hdr"><h1>🔒 SecureReg</h1></div>
+    <div class="hdr"><h1> SecureReg</h1></div>
     <div class="body">
       <h2>Hi ${username}, please verify your email</h2>
       <p>Thank you for registering. Click the button below to activate your account. The link expires in <strong>24 hours</strong>.</p>

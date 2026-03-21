@@ -9,53 +9,13 @@
 <body>
 
 <!-- ═══════════════════════════════════════════════════════════
-     ADMIN LOGIN PANEL
-═══════════════════════════════════════════════════════════ -->
-<div id="loginPanel" class="admin-login-page">
-  <div class="admin-login-card">
-    <div class="auth-header">
-      <div class="logo">
-        <span class="logo-icon">🔒</span>
-        <span class="logo-text">SecureReg</span>
-      </div>
-      <h1 class="auth-title">Admin Panel</h1>
-      <p class="auth-subtitle">Restricted access — authorised users only</p>
-    </div>
-
-    <form id="adminLoginForm" novalidate>
-      <div class="form-group">
-        <label for="adminUsername" class="form-label">
-          <span class="label-icon">👤</span> Username
-        </label>
-        <input type="text" id="adminUsername" class="form-input"
-               placeholder="admin" autocomplete="username" required>
-      </div>
-      <div class="form-group">
-        <label for="adminPassword" class="form-label">
-          <span class="label-icon">🔑</span> Password
-        </label>
-        <input type="password" id="adminPassword" class="form-input"
-               placeholder="••••••••••••" autocomplete="current-password" required>
-      </div>
-      <p id="adminLoginError" class="form-error" style="margin-bottom:8px"></p>
-      <button type="submit" id="adminLoginBtn" class="btn btn-primary btn-full">Sign In</button>
-    </form>
-
-    <p style="text-align:center;margin-top:20px;font-size:.78rem;color:#999">
-      Default: <code>admin</code> / <code>Admin@123456</code>
-    </p>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════
      DASHBOARD
 ═══════════════════════════════════════════════════════════ -->
-<div id="dashboardPanel" class="admin-layout hidden">
+<div id="dashboardPanel" class="admin-layout">
 
   <!-- Header -->
   <header class="admin-header">
     <div class="admin-logo">
-      <span>🔒</span>
       <span>SecureReg Admin</span>
     </div>
     <div class="admin-header-right">
@@ -67,45 +27,37 @@
 
   <main class="admin-content">
 
-    <!-- ── Stats cards ── -->
+    <!-- Stats cards -->
     <div class="stats-grid">
       <div class="stat-card c-primary">
-        <span class="stat-icon">👥</span>
         <span class="stat-value" id="statTotal">—</span>
         <span class="stat-label">Total Users</span>
       </div>
       <div class="stat-card c-success">
-        <span class="stat-icon">✅</span>
         <span class="stat-value" id="statVerified">—</span>
         <span class="stat-label">Verified</span>
       </div>
       <div class="stat-card c-warning">
-        <span class="stat-icon">⏳</span>
         <span class="stat-value" id="statUnverified">—</span>
         <span class="stat-label">Unverified</span>
       </div>
       <div class="stat-card c-danger">
-        <span class="stat-icon">🔒</span>
         <span class="stat-value" id="statLocked">—</span>
         <span class="stat-label">Locked</span>
       </div>
       <div class="stat-card c-info">
-        <span class="stat-icon">📅</span>
         <span class="stat-value" id="statToday">—</span>
         <span class="stat-label">Today's Signups</span>
       </div>
       <div class="stat-card c-primary">
-        <span class="stat-icon">🔐</span>
         <span class="stat-value" id="statAttempts">—</span>
         <span class="stat-label">Login Attempts</span>
       </div>
       <div class="stat-card c-warning">
-        <span class="stat-icon">❌</span>
         <span class="stat-value" id="statFailed">—</span>
         <span class="stat-label">Failed Logins</span>
       </div>
       <div class="stat-card c-danger">
-        <span class="stat-icon">⚠️</span>
         <span class="stat-value" id="statSuspicious">—</span>
         <span class="stat-label">Threats Detected</span>
       </div>
@@ -113,9 +65,9 @@
 
     <!-- ── Tabs ── -->
     <div class="tabs">
-      <button class="tab-btn active" id="tab-users">👥 User Management</button>
-      <button class="tab-btn"        id="tab-attempts">🔐 Login Attempts</button>
-      <button class="tab-btn"        id="tab-suspicious">⚠️ Suspicious Activity</button>
+      <button class="tab-btn active" id="tab-users">User Management</button>
+      <button class="tab-btn"        id="tab-attempts">Login Attempts</button>
+      <button class="tab-btn"        id="tab-suspicious">Suspicious Activity</button>
     </div>
 
     <!-- ── Users panel ── -->
@@ -202,6 +154,7 @@
   </main>
 </div>
 
+<script src="/js/session-manager.js"></script>
 <script src="/js/admin.js"></script>
 </body>
 </html>

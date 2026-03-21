@@ -10,13 +10,12 @@
 
 <nav class="top-nav">
   <div class="top-nav-logo">
-    <span>&#128274;</span>
     <span>SecureReg</span>
   </div>
   <div class="top-nav-links">
-    <a href="/dashboard" class="nav-link">&#128101; Dashboard</a>
-    <a href="/editor" class="nav-link nav-link-active">&#9999;&#65039; Editor</a>
-    <button id="logoutBtn" class="nav-link nav-link-logout btn-nav-logout">&#128682; Logout</button>
+    <a href="/dashboard" class="nav-link">Dashboard</a>
+    <a href="/editor" class="nav-link nav-link-active">Editor</a>
+    <button id="logoutBtn" class="nav-link nav-link-logout btn-nav-logout">Logout</button>
   </div>
 </nav>
 
@@ -31,15 +30,15 @@
         <h1 class="dashboard-welcome" id="editorHeading">Editor Panel</h1>
         <p class="dashboard-email" id="editorEmail">Loading…</p>
         <div class="dashboard-badges" style="margin-top:10px">
-          <span class="badge" id="editorRoleBadge">&#9999;&#65039; Editor</span>
-          <span class="badge badge-secondary">&#128274; Read Access</span>
+          <span class="badge" id="editorRoleBadge">Editor</span>
+          <span class="badge badge-secondary">Read Access</span>
         </div>
       </div>
     </div>
 
     <!-- Editor notice -->
     <div style="margin-top:20px;padding:14px 18px;background:#fffbf0;border:1.5px solid #f39c12;border-radius:10px;font-size:.85rem;color:#7d5a00;">
-      &#9888;&#65039; <strong>Editor Role:</strong> You can view all registered users and site statistics.
+      <strong>Editor Role:</strong> You can view all registered users and site statistics.
       Role changes and user management actions are restricted to Administrators.
     </div>
   </div>
@@ -50,22 +49,18 @@
 ═══════════════════════════════════════════════════════ -->
 <div class="stats-grid" style="max-width:1200px;margin:0 auto 24px;padding:0 24px">
   <div class="stat-card c-primary">
-    <span class="stat-icon">&#128101;</span>
     <span class="stat-value" id="eStat-total">—</span>
     <span class="stat-label">Total Users</span>
   </div>
   <div class="stat-card c-success">
-    <span class="stat-icon">&#10003;</span>
     <span class="stat-value" id="eStat-verified">—</span>
     <span class="stat-label">Verified</span>
   </div>
   <div class="stat-card c-info">
-    <span class="stat-icon">&#128994;</span>
     <span class="stat-value" id="eStat-active">—</span>
     <span class="stat-label">Active</span>
   </div>
   <div class="stat-card c-warning">
-    <span class="stat-icon">&#128197;</span>
     <span class="stat-value" id="eStat-today">—</span>
     <span class="stat-label">Today's Signups</span>
   </div>
@@ -238,6 +233,8 @@ function fmtDate(iso) {
   catch { return iso; }
 }
 </script>
+
+<script src="/js/session-manager.js"></script>
 
 </body>
 </html>

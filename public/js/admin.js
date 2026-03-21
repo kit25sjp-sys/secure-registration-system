@@ -1,18 +1,20 @@
 /* ════════════════════════════════════════════════════════════
    admin.js  –  Admin panel JavaScript
-   Features: JWT login, stats dashboard, user management,
+   Features: Stats dashboard, user management,
              login attempts log, suspicious activities monitor.
 ════════════════════════════════════════════════════════════ */
-
-let adminToken    = localStorage.getItem('adminToken')    || '';
-let adminUsername = localStorage.getItem('adminUsername') || '';
 
 /* ────────────────────────────────────────────────────────
    Bootstrap
 ──────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  if (adminToken) { showDashboard(); }
-  else            { showLoginForm(); }
+  loadStats();
+  loadUsers();
+  loadLoginAttempts();
+  loadSuspicious();
+
+  // Get current user info from session
+  fetchCurrentUser();
 
   // Header buttons
   document.getElementById('btnLogout') .addEventListener('click', logout);
@@ -25,83 +27,52 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ────────────────────────────────────────────────────────
-   Show / hide panels
+   Fetch current user info from session
 ──────────────────────────────────────────────────────── */
-function showLoginForm() {
-  document.getElementById('loginPanel').classList.remove('hidden');
-  document.getElementById('dashboardPanel').classList.add('hidden');
-}
-
-function showDashboard() {
-  document.getElementById('loginPanel').classList.add('hidden');
-  document.getElementById('dashboardPanel').classList.remove('hidden');
-  document.getElementById('adminUserBadge').textContent = '👤 ' + adminUsername;
-  loadStats();
-  loadUsers();
-  loadLoginAttempts();
-  loadSuspicious();
-}
-
-/* ────────────────────────────────────────────────────────
-   Admin login
-──────────────────────────────────────────────────────── */
-document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = document.getElementById('adminUsername').value.trim();
-  const password = document.getElementById('adminPassword').value;
-  const errEl    = document.getElementById('adminLoginError');
-  const btn      = document.getElementById('adminLoginBtn');
-
-  errEl.textContent = '';
-  btn.disabled = true; btn.textContent = 'Signing in…';
-
+async function fetchCurrentUser() {
   try {
-    const resp = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
+    const resp = await fetch('/api/auth/me');
     const data = await resp.json();
-    if (data.success) {
-      adminToken    = data.token;
-      adminUsername = data.username;
-      localStorage.setItem('adminToken',    adminToken);
-      localStorage.setItem('adminUsername', adminUsername);
-      showDashboard();
+    if (data.user && data.user.role === 'admin') {
+      document.getElementById('adminUserBadge').textContent = data.user.username;
     } else {
-      errEl.textContent = data.message || 'Invalid credentials.';
+      // Not admin, redirect to login
+      window.location.href = '/login';
     }
-  } catch {
-    errEl.textContent = 'Network error. Please try again.';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Sign In';
+  } catch (err) {
+    console.error('Error fetching user:', err);
+    // Fallback: redirect to login
+    window.location.href = '/login';
   }
-});
+}
 
 /* ────────────────────────────────────────────────────────
    Logout
 ──────────────────────────────────────────────────────── */
 function logout() {
-  adminToken = ''; adminUsername = '';
-  localStorage.removeItem('adminToken');
-  localStorage.removeItem('adminUsername');
-  showLoginForm();
+  // Clear session by calling backend logout endpoint
+  fetch('/api/auth/logout', { method: 'POST' }).catch(err => console.error(err));
+  // Redirect to login
+  window.location.href = '/login';
 }
 
 /* ────────────────────────────────────────────────────────
-   Auth helper  (with full error handling)
+   API helper (uses session-based authentication)
 ──────────────────────────────────────────────────────── */
 async function apiFetch(url, opts = {}) {
   try {
     const res = await fetch(url, {
       ...opts,
       headers: {
-        'Authorization': 'Bearer ' + adminToken,
         'Content-Type': 'application/json',
         ...(opts.headers || {}),
       },
     });
-    if (res.status === 401) { logout(); return null; }
+    if (res.status === 401) { 
+      // Unauthorized, redirect to login
+      window.location.href = '/login';
+      return null;
+    }
     const text = await res.text();
     try { return JSON.parse(text); }
     catch { return { success: false, message: `Server error (${res.status})` }; }

@@ -196,11 +196,36 @@ async function submitOTP(e) {
     const data = await res.json();
 
     if (res.ok && data.success) {
-      showAlert('success', '✅ Email verified successfully! Redirecting to login…');
+      showAlert('success', '✅ OTP verified! Logging you in…');
       document.getElementById('verifyBtn').disabled = true;
-      setTimeout(() => {
-        window.location.href = '/login?verified=1';
-      }, 1500);
+      
+      // Store session if this is a login (data.user will be present)
+      if (data.user) {
+        const sessionId = 'session_' + Date.now();
+        SessionManager.addSession(sessionId, {
+          id: data.user.id,
+          username: data.user.username,
+          email: data.user.email,
+          role: data.user.role || 'user',
+        });
+
+        // Role-based redirect
+        setTimeout(() => {
+          const role = data.user.role || 'user';
+          if (role === 'admin') {
+            window.location.replace('/admin.html');
+          } else if (role === 'moderator' || role === 'editor') {
+            window.location.replace('/editor.html');
+          } else {
+            window.location.replace('/dashboard.html');
+          }
+        }, 1500);
+      } else {
+        // Redirect to login if this was just email verification (registration flow)
+        setTimeout(() => {
+          window.location.href = '/login?verified=1';
+        }, 1500);
+      }
       return;
     }
 

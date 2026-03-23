@@ -21,6 +21,13 @@
 <div class="page-wrapper dashboard-wrapper">
 
   <!-- ══════════════════════════════════════════════════
+       ROLE INFO — Displayed at the very top
+  ══════════════════════════════════════════════════ -->
+  
+  <!-- ── Role Access Panel (shows based on user role) ── -->
+  <div id="roleAccessSection" style="display:none;margin-bottom:24px"></div>
+
+  <!-- ══════════════════════════════════════════════════
        ROW 1 — Welcome  +  Password Security
   ══════════════════════════════════════════════════ -->
 
@@ -34,9 +41,6 @@
       <span class="badge badge-success">Account Verified</span>
       <span class="badge" id="userRoleBadge">Loading…</span>
     </div>
-
-    <!-- Role-based action: shows for editor/admin only -->
-    <div id="roleAccessSection" style="display:none;margin-top:20px"></div>
   </div>
 
   <!-- ── Password Security Card ───────────────────── -->
@@ -218,8 +222,9 @@
     const roleBadge   = document.getElementById('userRoleBadge');
     const roleCfg     = {
       admin:  { cls: 'badge badge-danger',   icon: '\uD83D\uDEE1\uFE0F', label: 'Administrator' },
-      editor: { cls: 'badge badge-warning',  icon: '\u270F\uFE0F',       label: 'Editor'        },
-      user:   { cls: 'badge badge-info',     icon: '\uD83D\uDC64',       label: 'Standard User' },
+      moderator: { cls: 'badge badge-warning',  icon: '\u270F\uFE0F', label: 'Moderator / Manager' },
+      editor: { cls: 'badge badge-warning',  icon: '\u270F\uFE0F',       label: 'Moderator / Manager' },
+      user:   { cls: 'badge badge-info',     icon: '\uD83D\uDC64',       label: 'Registered User' },
     };
     const rc = roleCfg[role] || roleCfg.user;
     roleBadge.className   = rc.cls;
@@ -234,17 +239,45 @@
       accessSection.style.display = 'block';
       accessSection.innerHTML = `
         <div style="background:#fff0f0;border:1.5px solid #e74c3c;border-radius:10px;padding:16px 20px">
-          <p style="margin:0 0 10px;font-size:.92rem;font-weight:700;color:#c0392b">&#128737;&#65039; Admin Access</p>
-          <p style="margin:0 0 14px;font-size:.84rem;color:#666">Your account has full administrator privileges.</p>
+          <p style="margin:0 0 10px;font-size:.92rem;font-weight:700;color:#c0392b">&#128737;&#65039; Admin (Super Admin)</p>
+          <p style="margin:0 0 12px;font-size:.84rem;color:#666">Full control over the system.</p>
+          <p style="margin:0 0 8px;font-size:.84rem;font-weight:700;color:#555">Permissions:</p>
+          <ul style="margin:0 0 14px 18px;padding:0;color:#666;font-size:.84rem;line-height:1.6">
+            <li>Create / edit / delete users</li>
+            <li>Assign roles</li>
+            <li>View all data (logs, reports, activity)</li>
+            <li>Manage system settings</li>
+            <li>Block / suspend accounts</li>
+          </ul>
           <a href="/admin" class="btn btn-danger" style="text-decoration:none">&#9881;&#65039; Open Admin Panel</a>
         </div>`;
-    } else if (role === 'editor') {
+    } else if (role === 'moderator' || role === 'editor') {
       accessSection.style.display = 'block';
       accessSection.innerHTML = `
         <div style="background:#fffbf0;border:1.5px solid #f39c12;border-radius:10px;padding:16px 20px">
-          <p style="margin:0 0 10px;font-size:.92rem;font-weight:700;color:#d68910">&#9999;&#65039; Editor Access</p>
-          <p style="margin:0 0 14px;font-size:.84rem;color:#666">You have editor privileges — view users and site content.</p>
+          <p style="margin:0 0 10px;font-size:.92rem;font-weight:700;color:#d68910">&#9999;&#65039; Moderator / Manager</p>
+          <p style="margin:0 0 12px;font-size:.84rem;color:#666">Controls users but not system-level settings.</p>
+          <p style="margin:0 0 8px;font-size:.84rem;font-weight:700;color:#555">Permissions:</p>
+          <ul style="margin:0 0 14px 18px;padding:0;color:#666;font-size:.84rem;line-height:1.6">
+            <li>Approve or reject user registrations</li>
+            <li>Edit user details</li>
+            <li>Monitor activity</li>
+            <li>Handle reports or complaints</li>
+          </ul>
           <a href="/editor" class="btn btn-warning" style="text-decoration:none">&#9999;&#65039; Open Editor Panel</a>
+        </div>`;
+    } else {
+      accessSection.style.display = 'block';
+      accessSection.innerHTML = `
+        <div style="background:#f0f8ff;border:1.5px solid #3498db;border-radius:10px;padding:16px 20px">
+          <p style="margin:0 0 10px;font-size:.92rem;font-weight:700;color:#2471a3">&#128100; Registered User</p>
+          <p style="margin:0 0 12px;font-size:.84rem;color:#666">Normal user of the system.</p>
+          <p style="margin:0 0 8px;font-size:.84rem;font-weight:700;color:#555">Permissions:</p>
+          <ul style="margin:0 0 0 18px;padding:0;color:#666;font-size:.84rem;line-height:1.6">
+            <li>Register and login</li>
+            <li>View and edit own profile</li>
+            <li>Use system features (based on your app)</li>
+          </ul>
         </div>`;
     }
 

@@ -15,8 +15,8 @@ function requireEditor(req, res, next) {
     if (!user || !user.is_active) {
       return res.status(401).json({ success: false, message: 'Account not found or inactive.' });
     }
-    if (user.role !== 'editor' && user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Access denied. Editor role required.' });
+    if (user.role !== 'moderator' && user.role !== 'editor' && user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied. Moderator/Admin role required.' });
     }
     req.userRole = user.role;
     next();

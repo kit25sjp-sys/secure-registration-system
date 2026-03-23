@@ -176,7 +176,9 @@ function renderUsersTable(users) {
   }
   tbody.innerHTML = users.map(u => {
     const role = u.role || 'user';
-    const roleClass = { admin: 'role-admin', editor: 'role-editor', user: 'role-user' }[role] || 'role-user';
+    const normalizedRole = role === 'editor' ? 'moderator' : role;
+    const roleClass = { admin: 'role-admin', moderator: 'role-editor', user: 'role-user' }[normalizedRole] || 'role-user';
+    const roleLabel = normalizedRole === 'moderator' ? 'Moderator / Manager' : (normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1));
     return `
     <tr id="user-row-${u.id}">
       <td><strong>#${u.id}</strong></td>
@@ -185,10 +187,10 @@ function renderUsersTable(users) {
       <td>${u.is_verified ? '<span class="badge badge-success">✓ Verified</span>' : '<span class="badge badge-warning">⏳ Pending</span>'}</td>
       <td>${u.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'}</td>
       <td>
-        <span class="role-badge ${roleClass}">${role.charAt(0).toUpperCase() + role.slice(1)}</span>
+        <span class="role-badge ${roleClass}">${roleLabel}</span>
         <select class="role-select" data-action="changerole" data-id="${u.id}" title="Change role">
           <option value="user"   ${role === 'user'   ? 'selected' : ''}>User</option>
-          <option value="editor" ${role === 'editor' ? 'selected' : ''}>Editor</option>
+          <option value="moderator" ${normalizedRole === 'moderator' ? 'selected' : ''}>Moderator / Manager</option>
           <option value="admin"  ${role === 'admin'  ? 'selected' : ''}>Admin</option>
         </select>
       </td>

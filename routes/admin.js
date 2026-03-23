@@ -103,10 +103,13 @@ router.patch('/users/:id/toggle', adminAuthMiddleware, (req, res) => {
 ═══════════════════════════════════════════════════════════ */
 router.patch('/users/:id/role', adminAuthMiddleware, (req, res) => {
   try {
-    const allowed = ['user', 'editor', 'admin'];
-    const { role } = req.body;
+    const allowed = ['user', 'moderator', 'admin'];
+    let role = String(req.body?.role || '').trim().toLowerCase();
+    /* Backward compatibility: map legacy editor role to moderator */
+    if (role === 'editor') role = 'moderator';
+    if (role === 'manager') role = 'moderator';
     if (!allowed.includes(role))
-      return res.status(400).json({ success: false, message: `Invalid role. Must be: ${allowed.join(', ')}.` });
+      return res.status(400).json({ success: false, message: 'Invalid role. Must be: user, moderator, admin.' });
 
     const db   = getDb();
     const user = db.prepare('SELECT id, username FROM users WHERE id=?').get(req.params.id);

@@ -104,7 +104,7 @@ npm run dev
 
 | Role | Username | Password |
 |------|----------|----------|
-| Admin | `admin` | `Admin@123456` |
+| Admin | `Admin12` | `123456` |
 
 > Change this immediately in any real deployment.
 

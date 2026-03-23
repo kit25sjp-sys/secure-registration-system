@@ -24,9 +24,6 @@
   <div class="auth-container">
 
     <div class="auth-header">
-      <div class="logo">
-        <span class="logo-text">SecureReg</span>
-      </div>
       <h1 class="auth-title">Welcome Back</h1>
       <p class="auth-subtitle">Sign in to your secure account</p>
     </div>
@@ -35,15 +32,15 @@
 
     <form id="loginForm" class="auth-form" novalidate>
 
-      <!-- Email -->
+      <!-- Email or Username -->
       <div class="form-group">
         <label for="emailInput" class="form-label">
-          Email Address
+          Email or Username
         </label>
         <div class="input-wrapper">
-          <input type="email" id="emailInput" class="form-input"
-                 placeholder="you@example.com"
-                 autocomplete="email" required>
+          <input type="text" id="emailInput" class="form-input"
+                 placeholder="admin@example.com or Admin12"
+                 autocomplete="username" required>
         </div>
         <span class="form-error" id="emailError"></span>
       </div>
@@ -81,43 +78,6 @@
     <!-- Security note -->
     <div style="margin-top:24px;padding:14px;background:#fafafa;border:1px solid #e0e0e0;border-radius:8px;font-size:.78rem;color:#666;text-align:center">
        Your connection is protected. Accounts are locked for 15 minutes after 5 failed attempts.
-    </div>
-  </div>
-
-  <!-- ═══ RIGHT: Decorative panel ════════════════════════ -->
-  <div class="side-panel">
-    <div class="side-content">
-      <h2>Your account is protected </h2>
-      <div class="feature-list">
-        <div class="feature-item">
-          <span class="feature-icon"></span>
-          <div>
-            <h3>Brute-Force Protection</h3>
-            <p>Accounts are automatically locked after repeated failed login attempts.</p>
-          </div>
-        </div>
-        <div class="feature-item">
-          <span class="feature-icon"></span>
-          <div>
-            <h3>Verified Accounts Only</h3>
-            <p>Only email-verified users can access the system.</p>
-          </div>
-        </div>
-        <div class="feature-item">
-          <span class="feature-icon"></span>
-          <div>
-            <h3>Rate Limited</h3>
-            <p>Excessive login requests from any IP are throttled automatically.</p>
-          </div>
-        </div>
-        <div class="feature-item">
-          <span class="feature-icon"></span>
-          <div>
-            <h3>Login Monitoring</h3>
-            <p>Every login attempt is logged and reviewed by the admin panel.</p>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 

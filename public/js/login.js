@@ -39,7 +39,7 @@ async function switchAccount(sessionId) {
     showAlert(`Switched to <strong>${session.username}</strong>`, 'success');
     setTimeout(() => {
       const role = session.role || 'user';
-      const targetUrl = role === 'admin' ? '/admin.html' : (role === 'editor' ? '/editor.html' : '/dashboard');
+      const targetUrl = role === 'admin' ? '/admin.html' : ((role === 'moderator' || role === 'editor') ? '/editor.html' : '/dashboard.html');
       window.location.replace(targetUrl);
     }, 1000);
   } catch (err) {
@@ -69,40 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const emailIn   = document.getElementById('emailInput');
   const passIn    = document.getElementById('passwordInput');
   const submitBtn = document.getElementById('submitBtn');
-
-  // Check if there are already logged-in accounts and show them
-  const loggedInAccounts = SessionManager.getLoggedInAccounts();
-  if (loggedInAccounts.length > 0) {
-    const accountsList = loggedInAccounts.map(acc => 
-      `<div style="padding:8px;margin:4px 0;background:#f5f5f5;border-radius:4px;font-size:0.9rem;cursor:pointer" 
-            class="session-account" data-session-id="${acc.sessionId}">
-        <strong>${acc.username}</strong> (${acc.email}) ${acc.role === 'admin' ? '[Admin]' : ''}
-        ${acc.isActive ? '<span style="color:green"> ✓ Active</span>' : ''}
-      </div>`
-    ).join('');
-    
-    const sessionPanel = document.createElement('div');
-    sessionPanel.style.cssText = 'margin-bottom:20px;padding:12px;background:#e3f2fd;border:1px solid #90caf9;border-radius:8px;font-size:0.9rem;';
-    sessionPanel.innerHTML = `
-      <strong>Already logged in:</strong>
-      <div style="margin-top:8px;">${accountsList}</div>
-      <button type="button" id="logoutAllBtn" class="btn btn-sm btn-secondary" style="margin-top:8px;">Logout All</button>
-    `;
-    
-    const alertContainer = document.getElementById('alertContainer');
-    alertContainer.parentNode.insertBefore(sessionPanel, alertContainer.nextSibling);
-    
-    // Wire account switcher
-    document.querySelectorAll('.session-account').forEach(el => {
-      el.addEventListener('click', () => switchAccount(el.getAttribute('data-session-id')));
-    });
-    
-    // Wire logout all button
-    document.getElementById('logoutAllBtn').addEventListener('click', () => {
-      SessionManager.removeAllSessions();
-      location.reload();
-    });
-  }
 
   /* Show success banner when redirected from OTP verify or password-change */
   const params = new URLSearchParams(window.location.search);
@@ -175,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Show redirect options
         const role = data.user.role || 'user';
-        const targetUrl = role === 'admin' ? '/admin.html' : (role === 'editor' ? '/editor.html' : '/dashboard');
+        const targetUrl = role === 'admin' ? '/admin.html' : ((role === 'moderator' || role === 'editor') ? '/editor.html' : '/dashboard.html');
         
         setTimeout(() => {
           window.location.replace(targetUrl);

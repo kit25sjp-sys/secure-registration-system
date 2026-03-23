@@ -302,10 +302,38 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: `Incorrect OTP. ${remaining} attempt(s) remaining.` });
     }
 
-    /* ── ✅ OTP correct – activate account ── */
-    db.prepare('UPDATE users SET is_verified=1, otp_hash=NULL, otp_expires=NULL, otp_attempts=0 WHERE id=?').run(user.id);
+    /* ── ✅ OTP correct – verify and log in ── */
+    db.prepare('UPDATE users SET is_verified=1, otp_hash=NULL, otp_expires=NULL, otp_attempts=0, failed_attempts=0, locked_until=NULL, last_login=datetime(\'now\') WHERE id=?').run(user.id);
 
-    return res.json({ success: true, message: 'Email verified successfully! Your account is now active.' });
+    /* Log successful login */
+    const ip = req.ip || req.connection.remoteAddress;
+    db.prepare('INSERT INTO login_attempts (email, ip_address, success) VALUES (?,?,?)')
+      .run(email, ip, 1);
+
+    /* Create session - user is now logged in */
+    req.session.userId   = user.id;
+    req.session.username = user.username;
+    req.session.email    = user.email;
+    req.session.role     = user.role || 'user';
+
+    /* Save session before responding */
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ success: false, message: 'Session save failed.' });
+      }
+      
+      return res.json({ 
+        success: true, 
+        message: 'OTP verified! You are now logged in.',
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role || 'user',
+        }
+      });
+    });
 
   } catch (err) {
     console.error('Verify OTP error:', err);
@@ -367,13 +395,18 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and password are required.' });
     }
 
-    const sanitizedEmail = String(email).trim().toLowerCase();
+    const sanitizedInput = String(email).trim().toLowerCase();
     const db   = getDb();
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(sanitizedEmail);
+    
+    // Try to find user by email OR username
+    let user = db.prepare('SELECT * FROM users WHERE email = ?').get(sanitizedInput);
+    if (!user) {
+      user = db.prepare('SELECT * FROM users WHERE LOWER(username) = ?').get(sanitizedInput);
+    }
 
     const logAttempt = (success) =>
       db.prepare('INSERT INTO login_attempts (email, ip_address, success) VALUES (?,?,?)')
-        .run(sanitizedEmail, ip, success ? 1 : 0);
+        .run(user ? user.email : sanitizedInput, ip, success ? 1 : 0);
 
     if (!user) { logAttempt(false); return res.status(401).json({ success: false, message: 'Invalid email or password.' }); }
 
@@ -407,7 +440,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         success: false,
         message: 'Please verify your email with the OTP before logging in.',
         needsOtp: true,
-        email: sanitizedEmail,
+        email: user.email,
       });
     }
 
@@ -417,20 +450,34 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Your account has been deactivated. Contact support.' });
     }
 
-    /* ✅ Success */
-    db.prepare("UPDATE users SET failed_attempts=0, locked_until=NULL, last_login=datetime('now') WHERE id=?").run(user.id);
+    /* ✅ Password is correct AND account is verified */
+    /* Reset failed attempts since password was correct */
+    db.prepare('UPDATE users SET failed_attempts=0, locked_until=NULL, last_login=datetime(\'now\') WHERE id=?').run(user.id);
     logAttempt(true);
 
-    /* Store user in server-side session */
+    /* Create session - user is now logged in */
     req.session.userId   = user.id;
     req.session.username = user.username;
     req.session.email    = user.email;
     req.session.role     = user.role || 'user';
 
-    return res.json({
-      success: true,
-      message: 'Login successful!',
-      user: { id: user.id, username: user.username, email: user.email, role: user.role || 'user' },
+    /* Save session before responding */
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ success: false, message: 'Session save failed.' });
+      }
+      
+      return res.json({
+        success: true,
+        message: 'Login successful!',
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role || 'user',
+        }
+      });
     });
 
   } catch (err) {

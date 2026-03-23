@@ -18,7 +18,7 @@ async function createAdminUser() {
       console.log('✅  Admin user already exists:', username);
       console.log('Email:    ' + email);
       console.log('Password: ' + password);
-      process.exit(0);
+      return;
     }
 
     // Hash the password
@@ -36,14 +36,14 @@ async function createAdminUser() {
     console.log('Email:    ' + email);
     console.log('Password: ' + password);
     console.log('Role:     Master Admin');
-    console.log('OTP:      Not Required (Pre-verified)');
+    console.log('OTP:      Required at login (email OTP challenge)');
     console.log('');
     console.log('You can now login at http://localhost:3000/login');
-    console.log('No OTP verification needed for this account!');
-    process.exit(0);
+    console.log('Complete OTP verification to finish sign-in.');
+    return;
   } catch (err) {
     console.error('❌  Error creating admin user:', err.message);
-    process.exit(1);
+    process.exitCode = 1;
   }
 }
 

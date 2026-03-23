@@ -1,9 +1,7 @@
-/* ══════════════════════════════════════════════════════════════
-   database/db.js
+/* database/db.js
    Uses sql.js (pure WebAssembly SQLite – zero native compilation)
    with a better-sqlite3–compatible synchronous wrapper so all
-   existing route code works unchanged.
-══════════════════════════════════════════════════════════════ */
+   existing route code works unchanged. */
 const initSqlJs = require('sql.js');
 const fs     = require('fs');
 const bcrypt = require('bcryptjs');

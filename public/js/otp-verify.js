@@ -243,7 +243,7 @@ async function submitOTP(e) {
       const remaining = data.attemptsRemaining != null
         ? ` (${data.attemptsRemaining} attempt${data.attemptsRemaining !== 1 ? 's' : ''} remaining)`
         : '';
-      showAlert('danger', `❌ ${data.error || 'Invalid OTP.'}${remaining}`);
+      showAlert('danger', `❌ ${data.message || 'Invalid OTP.'}${remaining}`);
       setDigitsError(true);
       // Shake animation
       document.getElementById('otpInputs').classList.add('shake');
@@ -294,7 +294,7 @@ async function resendOTP() {
       // Cooldown before next resend
       startResendCooldown();
     } else {
-      showAlert('danger', data.error || 'Could not resend OTP. Please try again.');
+      showAlert('danger', data.message || 'Could not resend OTP. Please try again.');
       btn.disabled = false;
     }
   } catch (err) {

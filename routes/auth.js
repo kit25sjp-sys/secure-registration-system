@@ -263,7 +263,10 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
     const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
     if (!user) return res.status(400).json({ success: false, message: 'No account found for this email.' });
-    if (user.is_verified) return res.json({ success: true, alreadyVerified: true, message: 'Account already verified. You can log in.' });
+    /* If account is verified and there is no active OTP challenge, this is likely a stale verify attempt. */
+    if (user.is_verified && (!user.otp_hash || !user.otp_expires)) {
+      return res.json({ success: true, alreadyVerified: true, message: 'Account already verified. You can log in.' });
+    }
 
     if (!user.otp_hash || !user.otp_expires) {
       return res.status(400).json({ success: false, message: 'No OTP found. Please request a new one.', expired: true });
@@ -351,10 +354,10 @@ router.post('/resend-otp', otpResendLimiter, async (req, res) => {
     if (!email) return res.status(400).json({ success: false, message: 'Email is required.' });
 
     const db   = getDb();
-    const user = db.prepare('SELECT id, username, is_verified FROM users WHERE email = ?').get(email);
+    const user = db.prepare('SELECT id, username, is_verified, is_active FROM users WHERE email = ?').get(email);
 
     if (!user) return res.status(400).json({ success: false, message: 'No account found for that email.' });
-    if (user.is_verified) return res.json({ success: true, message: 'Account is already verified. Please log in.' });
+    if (!user.is_active) return res.status(403).json({ success: false, message: 'Your account has been deactivated. Contact support.' });
 
     /* Generate new OTP */
     const otp        = generateOTP();
@@ -433,51 +436,32 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ success: false, message: `Invalid email or password. ${5 - attempts} attempt(s) remaining.` });
     }
 
-    /* OTP not yet verified */
-    if (!user.is_verified) {
-      logAttempt(false);
-      return res.status(403).json({
-        success: false,
-        message: 'Please verify your email with the OTP before logging in.',
-        needsOtp: true,
-        email: user.email,
-      });
-    }
-
     /* Inactive */
     if (!user.is_active) {
       logAttempt(false);
       return res.status(403).json({ success: false, message: 'Your account has been deactivated. Contact support.' });
     }
 
-    /* ✅ Password is correct AND account is verified */
-    /* Reset failed attempts since password was correct */
-    db.prepare('UPDATE users SET failed_attempts=0, locked_until=NULL, last_login=datetime(\'now\') WHERE id=?').run(user.id);
-    logAttempt(true);
+    /* Password is correct: always require OTP before session login */
+    const otp        = generateOTP();
+    const otpHash    = await bcrypt.hash(otp, 10);
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
-    /* Create session - user is now logged in */
-    req.session.userId   = user.id;
-    req.session.username = user.username;
-    req.session.email    = user.email;
-    req.session.role     = user.role || 'user';
+    db.prepare('UPDATE users SET failed_attempts=0, locked_until=NULL, otp_hash=?, otp_expires=?, otp_attempts=0 WHERE id=?')
+      .run(otpHash, otpExpires, user.id);
 
-    /* Save session before responding */
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-        return res.status(500).json({ success: false, message: 'Session save failed.' });
-      }
-      
-      return res.json({
-        success: true,
-        message: 'Login successful!',
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role: user.role || 'user',
-        }
-      });
+    try {
+      await sendOTPEmail(user.email, user.username, otp);
+      console.log(`📧  Login OTP sent to ${user.email}`);
+    } catch (emailErr) {
+      console.error('Failed to send login OTP email:', emailErr.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      needsOtp: true,
+      message: 'OTP sent to your email. Please verify to complete login.',
+      email: user.email,
     });
 
   } catch (err) {

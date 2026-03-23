@@ -564,6 +564,32 @@ tbody tr:hover td { background: #fafafa; }
 .mb-16 { margin-bottom: 16px; }
 .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 
+/* Shared page container and card helpers */
+.content-shell {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.section-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.panel-note {
+  margin-top: 20px;
+  padding: 14px 18px;
+  background: #fffbf0;
+  border: 1.5px solid #f39c12;
+  border-radius: 10px;
+  font-size: .85rem;
+  color: #7d5a00;
+  line-height: 1.55;
+}
+
 /* ════════════════════════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════════════════════════ */
@@ -935,6 +961,12 @@ tbody tr:hover td { background: #fafafa; }
   padding-bottom: 40px;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+.dashboard-role-section {
+  width: 100%;
+  max-width: 840px;
+  margin: 0 auto 12px;
 }
 
 .dashboard-card {

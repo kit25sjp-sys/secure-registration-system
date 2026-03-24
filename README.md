@@ -108,17 +108,6 @@ npm start
 - Admin panel page: http://localhost:3000/admin
 - Moderator page: http://localhost:3000/editor
 
-## Default Test Account
-
-Application Admin user:
-
-- Username: Admin12
-- Email: admin@securereg.com
-- Password: 123456
-- Role: admin
-
-Note: OTP is required at login, even for verified/admin users.
-
 ## Admin API Auth Notes
 
 Admin APIs support:

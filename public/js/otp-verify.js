@@ -41,7 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Demo OTP display (no-op: OTPs are now delivered by Gmail SMTP) ────────
-function showDemoOtp(_otp) { // intentionally empty }
+function showDemoOtp(_otp) { 
+  // intentionally empty 
+}
 
 // ── Helpers ──────────────────────────────────────────────────────
 function maskEmail(e) {
@@ -132,12 +134,21 @@ function wireDigitInputs() {
 
 // ── Countdown ────────────────────────────────────────────────────
 function startCountdown() {
-  updateTimerUI(secondsLeft);
+  // Reset timer state
+  secondsLeft = 300;
+  
+  // Clear any existing intervals
   clearInterval(countdownInterval);
+  
+  // Initial display update
+  updateTimerUI(secondsLeft);
+  console.log('Countdown started - initial value:', secondsLeft);
 
+  // Start countdown interval
   countdownInterval = setInterval(() => {
     secondsLeft--;
     updateTimerUI(secondsLeft);
+    
     if (secondsLeft <= 0) {
       clearInterval(countdownInterval);
       handleExpiry();
@@ -146,22 +157,34 @@ function startCountdown() {
 }
 
 function updateTimerUI(secs) {
+  // Calculate minutes and seconds
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   const label = `${m}:${String(s).padStart(2, '0')}`;
-  document.getElementById('timerLabel').textContent = label;
-  document.getElementById('timerDisplay').textContent = label;
+  
+  // Update text display
+  const timerLabel = document.getElementById('timerLabel');
+  const timerDisplay = document.getElementById('timerDisplay');
+  
+  if (timerLabel) timerLabel.textContent = label;
+  if (timerDisplay) timerDisplay.textContent = label;
 
-  // SVG ring (0 = full, 150.8 = empty; total 300s)
-  const dashoffset = ((300 - secs) / 300) * 150.8;
+  // Update SVG ring (0 = full circle, 150.8 = empty; total 300s)
   const ring = document.getElementById('timerRing');
-  if (ring) ring.style.strokeDashoffset = dashoffset;
+  if (ring) {
+    const dashoffset = ((300 - secs) / 300) * 150.8;
+    ring.style.strokeDashoffset = dashoffset;
+  }
 
-  // Colour shift
+  // Update color classes based on time remaining
   const timerWrap = document.querySelector('.otp-timer-ring');
   if (timerWrap) {
-    timerWrap.classList.toggle('timer-warning', secs <= 60 && secs > 0);
-    timerWrap.classList.toggle('timer-expired', secs <= 0);
+    timerWrap.classList.remove('timer-warning', 'timer-expired');
+    if (secs <= 0) {
+      timerWrap.classList.add('timer-expired');
+    } else if (secs <= 60) {
+      timerWrap.classList.add('timer-warning');
+    }
   }
 }
 
@@ -188,12 +211,26 @@ async function submitOTP(e) {
   setLoading(true);
 
   try {
+    console.log('🔐 Submitting OTP for email:', email);
     const res = await fetch('/api/auth/verify-otp', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, otp })
     });
-    const data = await res.json();
+    
+    console.log('📨 Response status:', res.status, res.statusText);
+    
+    let data;
+    try {
+      data = await res.json();
+      console.log('📦 Response data:', data);
+    } catch (parseErr) {
+      console.error('❌ JSON parse error:', parseErr);
+      showAlert('danger', 'Server returned invalid response. Please try again.');
+      setLoading(false);
+      return;
+    }
 
     if (res.ok && data.success) {
       showAlert('success', '✅ OTP verified! Logging you in…');
@@ -201,6 +238,7 @@ async function submitOTP(e) {
       
       // Store session if this is a login (data.user will be present)
       if (data.user) {
+        console.log('👤 User data:', data.user);
         const sessionId = 'session_' + Date.now();
         SessionManager.addSession(sessionId, {
           id: data.user.id,
@@ -212,6 +250,7 @@ async function submitOTP(e) {
         // Role-based redirect
         setTimeout(() => {
           const role = data.user.role || 'user';
+          console.log('🔄 Redirecting to:', role);
           if (role === 'admin') {
             window.location.replace('/admin.html');
           } else if (role === 'moderator' || role === 'editor') {
@@ -222,6 +261,7 @@ async function submitOTP(e) {
         }, 1500);
       } else {
         // Redirect to login if this was just email verification (registration flow)
+        console.log('📝 Email verified, redirecting to login');
         setTimeout(() => {
           window.location.href = '/login?verified=1';
         }, 1500);
@@ -230,6 +270,7 @@ async function submitOTP(e) {
     }
 
     // ── Error handling ──────────────────────────────────────────
+    console.warn('⚠️ OTP verification failed:', data.message);
     if (data.expired) {
       handleExpiry();
     } else if (data.tooManyAttempts) {
@@ -251,8 +292,8 @@ async function submitOTP(e) {
       clearDigits();
     }
   } catch (err) {
-    console.error(err);
-    showAlert('danger', 'Network error. Please try again.');
+    console.error('🔥 Catch error:', err);
+    showAlert('danger', `Network error: ${err.message || 'Please try again.'}`);
   } finally {
     setLoading(false);
   }
@@ -269,6 +310,7 @@ async function resendOTP() {
   try {
     const res = await fetch('/api/auth/resend-otp', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
     });
@@ -285,9 +327,16 @@ async function resendOTP() {
       // Reset everything
       secondsLeft = 300;
       clearInterval(countdownInterval);
+      clearInterval(resendCooldownInterval);
       clearDigits();
       setDigitsError(false);
       document.getElementById('verifyBtn').disabled = false;
+      
+      // Clear hidden states
+      document.getElementById('resendCooldown').classList.add('hidden');
+      document.getElementById('resendLimit').classList.add('hidden');
+      
+      // Start fresh countdown
       startCountdown();
       showAlert('success', '✅ New OTP sent to your email!');
 

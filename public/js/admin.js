@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ──────────────────────────────────────────────────────────
 async function fetchCurrentUser() {
   try {
-    const resp = await fetch('/api/auth/me');
+    const resp = await fetch('/api/auth/me', { credentials: 'include' });
     const data = await resp.json();
     if (data.user && data.user.role === 'admin') {
       document.getElementById('adminUserBadge').textContent = data.user.username;
@@ -51,7 +51,7 @@ async function fetchCurrentUser() {
 // ──────────────────────────────────────────────────────────
 function logout() {
   // Clear session by calling backend logout endpoint
-  fetch('/api/auth/logout', { method: 'POST' }).catch(err => console.error(err));
+  fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(err => console.error(err));
   // Redirect to login
   window.location.href = '/login';
 }
@@ -63,6 +63,7 @@ async function apiFetch(url, opts = {}) {
   try {
     const res = await fetch(url, {
       ...opts,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...(opts.headers || {}),

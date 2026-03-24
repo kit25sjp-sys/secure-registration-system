@@ -207,37 +207,58 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
     const email = String(req.body.email || '').trim().toLowerCase().substring(0, 254);
     const otp   = String(req.body.otp   || '').trim().replace(/\D/g, '').substring(0, 6);
 
-    if (!email) return res.status(400).json({ success: false, message: 'Email is required.' });
-    if (otp.length !== 6) return res.status(400).json({ success: false, message: 'OTP must be exactly 6 digits.' });
+    console.log('🔐 [OTP] Verify request:', { email, otpLen: otp.length });
+
+    if (!email) {
+      console.log('❌ [OTP] No email provided');
+      return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+    if (otp.length !== 6) {
+      console.log('❌ [OTP] Invalid OTP length:', otp.length);
+      return res.status(400).json({ success: false, message: 'OTP must be exactly 6 digits.' });
+    }
 
     const db   = getDb();
     const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
-    if (!user) return res.status(400).json({ success: false, message: 'No account found for this email.' });
+    if (!user) {
+      console.log('❌ [OTP] No user found for email:', email);
+      return res.status(400).json({ success: false, message: 'No account found for this email.' });
+    }
+    
+    console.log('✅ [OTP] User found:', { id: user.id, username: user.username });
+
     // If account is verified and there is no active OTP challenge, this is likely a stale verify attempt.
     if (user.is_verified && (!user.otp_hash || !user.otp_expires)) {
+      console.log('⚠️  [OTP] Account already verified, no active challenge');
       return res.json({ success: true, alreadyVerified: true, message: 'Account already verified. You can log in.' });
     }
 
     if (!user.otp_hash || !user.otp_expires) {
+      console.log('❌ [OTP] No active OTP challenge for user');
       return res.status(400).json({ success: false, message: 'No OTP found. Please request a new one.', expired: true });
     }
 
     // ── Check expiry ––
     if (new Date(user.otp_expires) < new Date()) {
+      console.log('❌ [OTP] OTP expired for user:', user.id);
       db.prepare('UPDATE users SET otp_hash=NULL, otp_expires=NULL, otp_attempts=0 WHERE id=?').run(user.id);
       return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.', expired: true });
     }
 
     // ── Check attempt count (max 3 wrong) ––
     if (user.otp_attempts >= 3) {
+      console.log('❌ [OTP] Max attempts reached for user:', user.id);
       db.prepare('UPDATE users SET otp_hash=NULL, otp_expires=NULL, otp_attempts=0 WHERE id=?').run(user.id);
       return res.status(400).json({ success: false, message: 'Too many wrong attempts. Please request a new OTP.', tooManyAttempts: true });
     }
 
     // ── Compare OTP against hash ––
+    console.log('🔍 [OTP] Comparing OTP hash for user:', user.id);
     const match = await bcrypt.compare(otp, user.otp_hash);
+    
     if (!match) {
+      console.log('❌ [OTP] OTP mismatch for user:', user.id, 'attempt:', user.otp_attempts + 1);
       const newAttempts = user.otp_attempts + 1;
       db.prepare('UPDATE users SET otp_attempts=? WHERE id=?').run(newAttempts, user.id);
 
@@ -253,10 +274,11 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
         db.prepare('UPDATE users SET otp_hash=NULL, otp_expires=NULL, otp_attempts=0 WHERE id=?').run(user.id);
         return res.status(400).json({ success: false, message: 'Too many wrong attempts. Please request a new OTP.', tooManyAttempts: true });
       }
-      return res.status(400).json({ success: false, message: `Incorrect OTP. ${remaining} attempt(s) remaining.` });
+      return res.status(400).json({ success: false, message: `Incorrect OTP. ${remaining} attempt(s) remaining.`, attemptsRemaining: remaining });
     }
 
     // ── ✅ OTP correct – verify and log in ––
+    console.log('✅ [OTP] OTP correct! Verifying user:', user.id);
     db.prepare('UPDATE users SET is_verified=1, otp_hash=NULL, otp_expires=NULL, otp_attempts=0, failed_attempts=0, locked_until=NULL, last_login=datetime(\'now\') WHERE id=?').run(user.id);
 
     // Log successful login
@@ -270,13 +292,15 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
     req.session.email    = user.email;
     req.session.role     = user.role || 'user';
 
+    console.log('💾 [OTP] Saving session for user:', user.id);
     // Save session before responding
     req.session.save((err) => {
       if (err) {
-        console.error('Session save error:', err);
+        console.error('❌ [OTP] Session save error:', err);
         return res.status(500).json({ success: false, message: 'Session save failed.' });
       }
       
+      console.log('✅ [OTP] Session saved, sending response');
       return res.json({ 
         success: true, 
         message: 'OTP verified! You are now logged in.',
@@ -290,7 +314,7 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Verify OTP error:', err);
+    console.error('🔥 [OTP] Verify OTP error:', err);
     return res.status(500).json({ success: false, message: 'Verification failed. Please try again.' });
   }
 });
@@ -567,6 +591,223 @@ router.post('/check-password', (req, res) => {
   const { password } = req.body;
   if (!password) return res.status(400).json({ success: false, message: 'Password required.' });
   return res.json({ success: true, ...checkPasswordStrength(password) });
+});
+
+// ═══════════════════════════════════════════════════════════
+// POST /api/auth/forgot-password
+// Sends password reset OTP to user's email
+// ═══════════════════════════════════════════════════════════
+router.post('/forgot-password', registrationLimiter, async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase().substring(0, 254);
+    
+    console.log('🔐 [Forgot Password] Request for:', email);
+    
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+
+    const db = getDb();
+    const user = db.prepare('SELECT id, username FROM users WHERE email = ?').get(email);
+
+    if (!user) {
+      // Don't reveal if email exists (security best practice)
+      console.log('⚠️  [Forgot Password] Email not found:', email);
+      return res.json({ success: true, message: 'If an account exists, you will receive a password reset code.' });
+    }
+
+    // Generate OTP
+    const otp = generateOTP();
+    const otpHash = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes
+
+    // Store OTP in database
+    db.prepare('UPDATE users SET reset_otp_hash=?, reset_otp_expires=?, reset_attempts=0 WHERE id=?')
+      .run(otpHash, expiresAt, user.id);
+
+    // Send OTP email
+    console.log('📧 [Forgot Password] Sending OTP to:', email);
+    await sendOTPEmail(email, user.username, otp);
+
+    console.log('✅ [Forgot Password] OTP sent to:', email);
+    return res.json({ 
+      success: true, 
+      message: 'Password reset code sent to your email. Check your inbox and spam folder.' 
+    });
+  } catch (err) {
+    console.error('🔥 [Forgot Password] Error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to send reset code.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// POST /api/auth/verify-reset-otp
+// Verifies the password reset OTP
+// ═══════════════════════════════════════════════════════════
+router.post('/verify-reset-otp', otpVerifyLimiter, async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase().substring(0, 254);
+    const otp = String(req.body.otp || '').trim().replace(/\D/g, '').substring(0, 6);
+
+    console.log('🔐 [Verify Reset OTP] Request for:', email);
+
+    if (!email || otp.length !== 6) {
+      return res.status(400).json({ success: false, message: 'Invalid request.' });
+    }
+
+    const db = getDb();
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'No account found.' });
+    }
+
+    if (!user.reset_otp_hash || !user.reset_otp_expires) {
+      return res.status(400).json({ success: false, message: 'No reset request found. Request a new code.' });
+    }
+
+    // Check expiry
+    if (new Date(user.reset_otp_expires) < new Date()) {
+      console.log('❌ [Verify Reset OTP] Expired for user:', user.id);
+      db.prepare('UPDATE users SET reset_otp_hash=NULL, reset_otp_expires=NULL, reset_attempts=0 WHERE id=?')
+        .run(user.id);
+      return res.status(400).json({ success: false, message: 'Code has expired. Request a new one.', expired: true });
+    }
+
+    // Check attempts
+    if (user.reset_attempts >= 3) {
+      console.log('❌ [Verify Reset OTP] Too many attempts for user:', user.id);
+      db.prepare('UPDATE users SET reset_otp_hash=NULL, reset_otp_expires=NULL, reset_attempts=0 WHERE id=?')
+        .run(user.id);
+      return res.status(400).json({ success: false, message: 'Too many attempts. Request a new code.', tooManyAttempts: true });
+    }
+
+    // Verify OTP
+    console.log('🔍 [Verify Reset OTP] Comparing OTP for user:', user.id);
+    const match = await bcrypt.compare(otp, user.reset_otp_hash);
+
+    if (!match) {
+      console.log('❌ [Verify Reset OTP] Mismatch for user:', user.id);
+      const newAttempts = user.reset_attempts + 1;
+      db.prepare('UPDATE users SET reset_attempts=? WHERE id=?').run(newAttempts, user.id);
+      
+      const remaining = 3 - newAttempts;
+      return res.status(400).json({ 
+        success: false, 
+        message: `Incorrect code. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.` 
+      });
+    }
+
+    console.log('✅ [Verify Reset OTP] Verified for user:', user.id);
+    
+    // OTP is valid - clear it and prepare for password reset
+    db.prepare('UPDATE users SET reset_otp_hash=NULL, reset_otp_expires=NULL, reset_attempts=0 WHERE id=?')
+      .run(user.id);
+
+    return res.json({ 
+      success: true, 
+      message: 'OTP verified! You can now reset your password.' 
+    });
+  } catch (err) {
+    console.error('🔥 [Verify Reset OTP] Error:', err);
+    return res.status(500).json({ success: false, message: 'Verification failed.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// POST /api/auth/resend-reset-otp
+// Resends password reset OTP (rate-limited)
+// ═══════════════════════════════════════════════════════════
+router.post('/resend-reset-otp', otpResendLimiter, async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase().substring(0, 254);
+    
+    console.log('📧 [Resend Reset OTP] Request for:', email);
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+
+    const db = getDb();
+    const user = db.prepare('SELECT id, username FROM users WHERE email = ?').get(email);
+
+    if (!user) {
+      return res.json({ success: true, message: 'If an account exists, you will receive a new code.' });
+    }
+
+    // Generate new OTP
+    const otp = generateOTP();
+    const otpHash = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+    db.prepare('UPDATE users SET reset_otp_hash=?, reset_otp_expires=?, reset_attempts=0 WHERE id=?')
+      .run(otpHash, expiresAt, user.id);
+
+    // Send new OTP
+    console.log('📧 [Resend Reset OTP] Sending to:', email);
+    await sendOTPEmail(email, user.username, otp);
+
+    console.log('✅ [Resend Reset OTP] Sent to:', email);
+    return res.json({ success: true, message: 'New code sent to your email.' });
+  } catch (err) {
+    console.error('🔥 [Resend Reset OTP] Error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to resend code.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// POST /api/auth/reset-password
+// Actually resets the user's password after OTP verification
+// ═══════════════════════════════════════════════════════════
+router.post('/reset-password', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase().substring(0, 254);
+    const newPassword = String(req.body.newPassword || '').substring(0, 72);
+    const confirmPassword = String(req.body.confirmPassword || '').substring(0, 72);
+
+    console.log('🔐 [Reset Password] Request for:', email);
+
+    // Validation
+    if (!email || !newPassword || !confirmPassword) {
+      return res.status(400).json({ success: false, message: 'All fields are required.' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, message: 'Passwords do not match.' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
+    }
+
+    const db = getDb();
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Account not found.' });
+    }
+
+    // Hash new password
+    console.log('🔒 [Reset Password] Hashing new password');
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    // Update password and clear reset OTP
+    db.prepare('UPDATE users SET password_hash=?, reset_otp_hash=NULL, reset_otp_expires=NULL, reset_attempts=0 WHERE id=?')
+      .run(passwordHash, user.id);
+
+    // Log the password change
+    db.prepare('INSERT INTO password_history (user_id, password_hash) VALUES (?, ?)')
+      .run(user.id, passwordHash);
+
+    console.log('✅ [Reset Password] Password reset for user:', user.id);
+    return res.json({ 
+      success: true, 
+      message: 'Password reset successfully! You can now login with your new password.' 
+    });
+  } catch (err) {
+    console.error('🔥 [Reset Password] Error:', err);
+    return res.status(500).json({ success: false, message: 'Password reset failed.' });
+  }
 });
 
 module.exports = router;

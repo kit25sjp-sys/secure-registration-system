@@ -105,6 +105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const r = await fetch('/api/auth/check-password', {
         method:  'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ password: val }),
       });

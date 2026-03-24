@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Demo OTP display (no-op: OTPs are now delivered by Gmail SMTP) ────────
-function showDemoOtp(_otp) { /* intentionally empty */ }
+function showDemoOtp(_otp) { // intentionally empty }
 
 // ── Helpers ──────────────────────────────────────────────────────
 function maskEmail(e) {

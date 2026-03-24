@@ -15,7 +15,7 @@ Legacy role value editor is auto-mapped to moderator for backward compatibility.
 ## Core Features
 
 - User registration with server-side validation
-- SVG CAPTCHA challenge for registration
+- **Google reCAPTCHA** bot prevention on registration
 - Password hashing using bcrypt (cost 12)
 - OTP email verification for registration
 - OTP challenge on every successful login
@@ -30,11 +30,12 @@ Legacy role value editor is auto-mapped to moderator for backward compatibility.
 ## Security Controls
 
 - Helmet security headers
+- Google reCAPTCHA anti-bot protection
 - Input validation and sanitization via express-validator
 - Prepared SQL statements
 - Account lockout after repeated failed login attempts
 - HTTP-only session cookies
-- CAPTCHA + OTP anti-automation layers
+- OTP anti-automation layer
 
 ## Tech Stack
 
@@ -130,7 +131,7 @@ Admin APIs support:
 The following were verified during development checks:
 
 - GET / returns 200
-- GET /api/auth/captcha returns SVG response
+- reCAPTCHA widget loads on registration page
 - Invalid login returns 401
 - Valid password login returns needsOtp=true
 - GET /api/auth/me without session returns 401
@@ -140,7 +141,6 @@ The following were verified during development checks:
 Auth routes:
 
 - POST /api/auth/register
-- GET /api/auth/captcha
 - POST /api/auth/login
 - POST /api/auth/verify-otp
 - POST /api/auth/resend-otp
@@ -168,6 +168,10 @@ Moderator routes:
 ## Notes for Production
 
 - Set strong SESSION_SECRET and JWT_SECRET
+- Update **RECAPTCHA_SITE_KEY** and **RECAPTCHA_SECRET_KEY** in .env with your Google reCAPTCHA keys
+  - Get keys from: https://www.google.com/recaptcha/admin
+  - Select the reCAPTCHA type you configured for your widget
+  - Your domain must be authorized in Google Console
 - Use HTTPS and set secure cookies
 - Configure real SMTP credentials
 - Rotate default credentials immediately

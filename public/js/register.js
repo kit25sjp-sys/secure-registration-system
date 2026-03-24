@@ -1,8 +1,8 @@
-/* ════════════════════════════════════════════════════════════
-   register.js  –  Registration page JavaScript
-   Handles: real-time validation, password strength meter,
-            CAPTCHA, and form submission.
-════════════════════════════════════════════════════════════ */
+// ══════════════════════════════════════════════════════════════
+// register.js  –  Registration page JavaScript
+// Handles: real-time validation, password strength meter,
+//          CAPTCHA, and form submission.
+// ══════════════════════════════════════════════════════════════
 
 /* ────────────────────────────────────────────────────────
    Password strength (mirrors server-side logic)
@@ -120,25 +120,6 @@ function _wireToggleButtons() {
 }
 
 /* ────────────────────────────────────────────────────────
-   CAPTCHA refresh
-──────────────────────────────────────────────────────── */
-function refreshCaptcha() {
-  const img = document.getElementById('captchaImage');
-  const btn = document.getElementById('refreshCaptcha');
-  if (!img) return;
-  img.style.opacity = '0.4';
-  img.style.transition = 'opacity .2s';
-  img.src = '/api/auth/captcha?' + Date.now();
-  img.onload = () => { img.style.opacity = '1'; };
-  btn.style.transition = 'transform .5s ease';
-  btn.style.transform  = 'rotate(360deg)';
-  setTimeout(() => { btn.style.transform = ''; }, 500);
-  const input = document.getElementById('captchaAnswer');
-  if (input) input.value = '';
-  clearError('captcha');
-}
-
-/* ────────────────────────────────────────────────────────
    Alert helpers
 ──────────────────────────────────────────────────────── */
 function showAlert(msg, type = 'error') {
@@ -185,7 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const emailInput           = document.getElementById('emailInput');
   const passwordInput        = document.getElementById('passwordInput');
   const confirmPasswordInput = document.getElementById('confirmPasswordInput');
-  const captchaInput         = document.getElementById('captchaAnswer');
   const form                 = document.getElementById('registrationForm');
   const submitBtn            = document.getElementById('submitBtn');
 
@@ -233,11 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
     else                           { setError('confirmPassword', 'Passwords do not match'); statusEl.textContent = ''; }
   });
 
-  /* ── captcha ── */
-  captchaInput.addEventListener('input', () => {
-    if (captchaInput.value) clearError('captcha');
-  });
-
   /* ════════════════════════════════════════════════════════
      Form submit
   ════════════════════════════════════════════════════════ */
@@ -249,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const email           = emailInput.value.trim();
     const password        = passwordInput.value;
     const confirmPassword = confirmPasswordInput.value;
-    const captchaAnswer   = captchaInput.value;
 
     let valid = true;
 
@@ -273,23 +247,42 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!confirmPassword) { setError('confirmPassword', 'Please confirm your password'); valid = false; }
     else if (password !== confirmPassword) { setError('confirmPassword', 'Passwords do not match'); valid = false; }
 
-    /* validate captcha */
-    if (!captchaAnswer || captchaAnswer.trim().length < 6) { setError('captcha', 'Please type the 6 characters shown in the image'); valid = false; }
-
     if (!valid) return;
 
-    /* ── Submit ── */
+    const recaptchaError = document.getElementById('recaptchaError');
+    if (recaptchaError) recaptchaError.textContent = '';
+    const recaptchaToken = (window.grecaptcha && typeof window.grecaptcha.getResponse === 'function')
+      ? window.grecaptcha.getResponse()
+      : '';
+    if (!recaptchaToken) {
+      if (recaptchaError) recaptchaError.textContent = 'Please complete CAPTCHA.';
+      return;
+    }
+
+    /* ── Disable submit and show loader ── */
     const btnText   = document.getElementById('submitBtnText');
     const btnLoader = document.getElementById('submitBtnLoader');
     btnText.classList.add('hidden');
     btnLoader.classList.remove('hidden');
     submitBtn.disabled = true;
 
+    submitFormWithToken(recaptchaToken);
+  });
+
+  async function submitFormWithToken(recaptchaToken) {
+    const username        = document.getElementById('usernameInput').value.trim();
+    const email           = document.getElementById('emailInput').value.trim();
+    const password        = document.getElementById('passwordInput').value;
+    const confirmPassword = document.getElementById('confirmPasswordInput').value;
+    const btnText         = document.getElementById('submitBtnText');
+    const btnLoader       = document.getElementById('submitBtnLoader');
+    const submitBtn       = document.getElementById('submitBtn');
+
     try {
       const resp = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password, confirmPassword, captchaAnswer: captchaAnswer.trim() }),
+        body: JSON.stringify({ username, email, password, confirmPassword, recaptchaToken }),
       });
       const data = await resp.json();
 
@@ -298,7 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       } else {
         showAlert(data.message || 'Registration failed. Please try again.', 'error');
-        refreshCaptcha();
       }
     } catch {
       showAlert('Network error. Please check your connection and try again.', 'error');
@@ -306,6 +298,9 @@ document.addEventListener('DOMContentLoaded', () => {
       btnText.classList.remove('hidden');
       btnLoader.classList.add('hidden');
       submitBtn.disabled = false;
+      if (window.grecaptcha && typeof window.grecaptcha.reset === 'function') {
+        window.grecaptcha.reset();
+      }
     }
-  });
+  }
 });

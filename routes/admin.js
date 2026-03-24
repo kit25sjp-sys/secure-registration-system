@@ -6,9 +6,9 @@ const jwt     = require('jsonwebtoken');
 const { getDb }              = require('../database/db');
 const { adminAuthMiddleware, JWT_SECRET } = require('../middleware/adminAuth');
 
-/* ═══════════════════════════════════════════════════════════
-   POST /api/admin/login
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// POST /api/admin/login
+// ═══════════════════════════════════════════════════════════
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -35,9 +35,9 @@ router.post('/login', async (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   GET /api/admin/stats
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// GET /api/admin/stats
+// ═══════════════════════════════════════════════════════════
 router.get('/stats', adminAuthMiddleware, (req, res) => {
   try {
     const db = getDb();
@@ -63,9 +63,9 @@ router.get('/stats', adminAuthMiddleware, (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   GET /api/admin/users
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// GET /api/admin/users
+// ═══════════════════════════════════════════════════════════
 router.get('/users', adminAuthMiddleware, (req, res) => {
   try {
     const db    = getDb();
@@ -81,9 +81,9 @@ router.get('/users', adminAuthMiddleware, (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   PATCH /api/admin/users/:id/toggle  – activate / deactivate
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// PATCH /api/admin/users/:id/toggle  – activate / deactivate
+// ═══════════════════════════════════════════════════════════
 router.patch('/users/:id/toggle', adminAuthMiddleware, (req, res) => {
   try {
     const db   = getDb();
@@ -98,14 +98,14 @@ router.patch('/users/:id/toggle', adminAuthMiddleware, (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   PATCH /api/admin/users/:id/role  – change user role
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// PATCH /api/admin/users/:id/role  – change user role
+// ═══════════════════════════════════════════════════════════
 router.patch('/users/:id/role', adminAuthMiddleware, (req, res) => {
   try {
     const allowed = ['user', 'moderator', 'admin'];
     let role = String(req.body?.role || '').trim().toLowerCase();
-    /* Backward compatibility: map legacy editor role to moderator */
+    // Backward compatibility: map legacy editor role to moderator
     if (role === 'editor') role = 'moderator';
     if (role === 'manager') role = 'moderator';
     if (!allowed.includes(role))
@@ -122,9 +122,9 @@ router.patch('/users/:id/role', adminAuthMiddleware, (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   DELETE /api/admin/users/:id
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// DELETE /api/admin/users/:id
+// ═══════════════════════════════════════════════════════════
 router.delete('/users/:id', adminAuthMiddleware, (req, res) => {
   try {
     const db   = getDb();
@@ -138,9 +138,9 @@ router.delete('/users/:id', adminAuthMiddleware, (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   GET /api/admin/login-attempts
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// GET /api/admin/login-attempts
+// ═══════════════════════════════════════════════════════════
 router.get('/login-attempts', adminAuthMiddleware, (req, res) => {
   try {
     const db       = getDb();
@@ -151,9 +151,9 @@ router.get('/login-attempts', adminAuthMiddleware, (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   GET /api/admin/suspicious
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// GET /api/admin/suspicious
+// ═══════════════════════════════════════════════════════════
 router.get('/suspicious', adminAuthMiddleware, (req, res) => {
   try {
     const db         = getDb();

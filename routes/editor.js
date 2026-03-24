@@ -2,9 +2,9 @@ const express = require('express');
 const router  = express.Router();
 const { getDb } = require('../database/db');
 
-/* ═══════════════════════════════════════════════════════════
-   Session-based role guard  (editor OR admin)
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// Session-based role guard  (editor OR admin)
+// ═══════════════════════════════════════════════════════════
 function requireEditor(req, res, next) {
   if (!req.session || !req.session.userId) {
     return res.status(401).json({ success: false, message: 'Not authenticated.' });
@@ -26,9 +26,9 @@ function requireEditor(req, res, next) {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   GET /api/editor/stats
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// GET /api/editor/stats
+// ═══════════════════════════════════════════════════════════
 router.get('/stats', requireEditor, (req, res) => {
   try {
     const db = getDb();
@@ -48,9 +48,9 @@ router.get('/stats', requireEditor, (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   GET /api/editor/users  –  read-only, no password hashes
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// GET /api/editor/users  –  read-only, no password hashes
+// ═══════════════════════════════════════════════════════════
 router.get('/users', requireEditor, (req, res) => {
   try {
     const db    = getDb();

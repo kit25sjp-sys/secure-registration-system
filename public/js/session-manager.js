@@ -1,8 +1,8 @@
-/* ════════════════════════════════════════════════════════════
-   session-manager.js – Multi-session support
-   Allows multiple user accounts to be logged in simultaneously
-   in the same browser by storing multiple session tokens
-════════════════════════════════════════════════════════════ */
+// ══════════════════════════════════════════════════════════════
+// session-manager.js – Multi-session support
+// Allows multiple user accounts to be logged in simultaneously
+// in the same browser by storing multiple session tokens
+// ══════════════════════════════════════════════════════════════
 
 const SessionManager = {
   // Get all active sessions

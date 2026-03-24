@@ -1,12 +1,12 @@
-/* ════════════════════════════════════════════════════════════
-   admin.js  –  Admin panel JavaScript
-   Features: Stats dashboard, user management,
-             login attempts log, suspicious activities monitor.
-════════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// admin.js  –  Admin panel JavaScript
+// Features: Stats dashboard, user management,
+//           login attempts log, suspicious activities monitor.
+// ═══════════════════════════════════════════════════════════
 
-/* ────────────────────────────────────────────────────────
-   Bootstrap
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// Bootstrap
+// ──────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadStats();
   loadUsers();
@@ -26,9 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tab-suspicious').addEventListener('click', () => switchTab('suspicious'));
 });
 
-/* ────────────────────────────────────────────────────────
-   Fetch current user info from session
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// Fetch current user info from session
+// ──────────────────────────────────────────────────────────
 async function fetchCurrentUser() {
   try {
     const resp = await fetch('/api/auth/me');
@@ -46,9 +46,9 @@ async function fetchCurrentUser() {
   }
 }
 
-/* ────────────────────────────────────────────────────────
-   Logout
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// Logout
+// ──────────────────────────────────────────────────────────
 function logout() {
   // Clear session by calling backend logout endpoint
   fetch('/api/auth/logout', { method: 'POST' }).catch(err => console.error(err));
@@ -56,9 +56,9 @@ function logout() {
   window.location.href = '/login';
 }
 
-/* ────────────────────────────────────────────────────────
-   API helper (uses session-based authentication)
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// API helper (uses session-based authentication)
+// ──────────────────────────────────────────────────────────
 async function apiFetch(url, opts = {}) {
   try {
     const res = await fetch(url, {
@@ -82,9 +82,9 @@ async function apiFetch(url, opts = {}) {
   }
 }
 
-/* ────────────────────────────────────────────────────────
-   Custom confirm dialog (replaces browser confirm())
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// Custom confirm dialog (replaces browser confirm())
+// ──────────────────────────────────────────────────────────
 function adminConfirm(message) {
   return new Promise(resolve => {
     // Remove any existing dialog
@@ -124,9 +124,9 @@ function adminConfirm(message) {
   });
 }
 
-/* ────────────────────────────────────────────────────────
-   Tabs
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// Tabs
+// ──────────────────────────────────────────────────────────
 function switchTab(tabId) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -134,9 +134,9 @@ function switchTab(tabId) {
   document.getElementById('panel-' + tabId).classList.add('active');
 }
 
-/* ────────────────────────────────────────────────────────
-   Stats
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// Stats
+// ──────────────────────────────────────────────────────────
 async function loadStats() {
   const data = await apiFetch('/api/admin/stats');
   if (!data || !data.success) return;
@@ -152,9 +152,9 @@ async function loadStats() {
   set('statSuspicious',  s.suspiciousActivities);
 }
 
-/* ────────────────────────────────────────────────────────
-   Users table
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// Users table
+// ──────────────────────────────────────────────────────────
 let allUsers = [];
 
 async function loadUsers() {
@@ -219,13 +219,13 @@ function renderUsersTable(users) {
   }).join('');
 }
 
-/* Search */
+// Search
 document.getElementById('userSearch').addEventListener('input', (e) => {
   const q = e.target.value.toLowerCase();
   renderUsersTable(q ? allUsers.filter(u => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) : allUsers);
 });
 
-/* Event delegation – handles toggle + delete + viewhash for all rows (CSP-safe, works on dynamic rows) */
+// Event delegation – handles toggle + delete + viewhash for all rows (CSP-safe, works on dynamic rows)
 document.getElementById('usersTableBody').addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-action]');
   if (!btn || btn.tagName === 'SELECT') return;
@@ -239,7 +239,7 @@ document.getElementById('usersTableBody').addEventListener('click', async (e) =>
   }
 });
 
-/* Role change – uses 'change' event on the select (CSP-safe) */
+// Role change – uses 'change' event on the select (CSP-safe)
 document.getElementById('usersTableBody').addEventListener('change', async (e) => {
   const sel = e.target.closest('select[data-action="changerole"]');
   if (!sel) return;
@@ -248,7 +248,7 @@ document.getElementById('usersTableBody').addEventListener('change', async (e) =
   await changeRole(id, role);
 });
 
-/* Toggle active */
+// Toggle active
 async function toggleUser(id) {
   const data = await apiFetch(`/api/admin/users/${id}/toggle`, { method: 'PATCH' });
   if (data && data.success) {
@@ -259,7 +259,7 @@ async function toggleUser(id) {
   }
 }
 
-/* Delete */
+// Delete
 async function deleteUser(id) {
   const confirmed = await adminConfirm('Permanently delete this user?\nThis action cannot be undone.');
   if (!confirmed) return;
@@ -278,26 +278,26 @@ async function deleteUser(id) {
   }
 }
 
-/* Change role */
+// Change role
 async function changeRole(id, role) {
   const data = await apiFetch(`/api/admin/users/${id}/role`, {
     method: 'PATCH',
     body: JSON.stringify({ role }),
   });
   if (data && data.success) {
-    /* Update allUsers cache so badge re-renders correctly */
+    // Update allUsers cache so badge re-renders correctly
     const u = allUsers.find(u => u.id === id);
     if (u) u.role = role;
     renderUsersTable(allUsers);
     showAdminToast(data.message, 'success');
   } else {
     showAdminToast(data ? data.message : 'Role update failed.', 'error');
-    /* Re-render to reset the select to its old value */
+    // Re-render to reset the select to its old value
     renderUsersTable(allUsers);
   }
 }
 
-/* Toast notification for admin actions */
+// Toast notification for admin actions
 function showAdminToast(msg, type = 'info') {
   document.getElementById('adminToast')?.remove();
   const colors = { success: '#27ae60', error: '#e74c3c', info: '#3498db', warning: '#f39c12' };
@@ -317,9 +317,9 @@ function showAdminToast(msg, type = 'info') {
   setTimeout(() => toast?.remove(), 3500);
 }
 
-/* ────────────────────────────────────────────────────────
-   Hash viewer modal
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// Hash viewer modal
+// ──────────────────────────────────────────────────────────
 function showHashModal(username, hash) {
   document.getElementById('adminHashModal')?.remove();
   const modal = document.createElement('div');
@@ -364,9 +364,9 @@ function showHashModal(username, hash) {
   });
 }
 
-/* ────────────────────────────────────────────────────────
-   Login attempts table
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// Login attempts table
+// ──────────────────────────────────────────────────────────
 async function loadLoginAttempts() {
   const tbody = document.getElementById('attemptsTableBody');
   tbody.innerHTML = '<tr><td colspan="4"><div class="loading-spinner"></div></td></tr>';
@@ -387,9 +387,9 @@ async function loadLoginAttempts() {
     </tr>`).join('');
 }
 
-/* ────────────────────────────────────────────────────────
-   Suspicious activities table
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// Suspicious activities table
+// ──────────────────────────────────────────────────────────
 async function loadSuspicious() {
   const tbody = document.getElementById('suspiciousTableBody');
   tbody.innerHTML = '<tr><td colspan="5"><div class="loading-spinner"></div></td></tr>';
@@ -411,16 +411,16 @@ async function loadSuspicious() {
     </tr>`).join('');
 }
 
-/* ────────────────────────────────────────────────────────
-   Refresh all
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// Refresh all
+// ──────────────────────────────────────────────────────────
 function refreshAll() {
   loadStats(); loadUsers(); loadLoginAttempts(); loadSuspicious();
 }
 
-/* ────────────────────────────────────────────────────────
-   Utilities
-──────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────
+// Utilities
+// ──────────────────────────────────────────────────────────
 function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }

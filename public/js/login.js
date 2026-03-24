@@ -1,6 +1,6 @@
-/* ════════════════════════════════════════════════════════════
-   login.js  –  Login page JavaScript
-════════════════════════════════════════════════════════════ */
+// ══════════════════════════════════════════════════════════════
+// login.js  –  Login page JavaScript
+// ══════════════════════════════════════════════════════════════
 
 function showAlert(msg, type = 'error') {
   const c     = document.getElementById('alertContainer');
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const passIn    = document.getElementById('passwordInput');
   const submitBtn = document.getElementById('submitBtn');
 
-  /* Show success banner when redirected from OTP verify or password-change */
+  // Show success banner when redirected from OTP verify or password-change
   const params = new URLSearchParams(window.location.search);
   if (params.get('verified') === '1') {
     showAlert('✅ Email verified successfully! You can now log in.', 'success');
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const email    = emailIn.value.trim();
     const password = passIn.value;
 
-    /* client-side guards */
+    // client-side guards
     let valid = true;
     if (!email) {
       document.getElementById('emailError').textContent = 'Email is required';

@@ -128,26 +128,10 @@
         <span class="form-error" id="confirmPasswordError"></span>
       </div>
 
-      <!-- CAPTCHA -->
+      <!-- reCAPTCHA -->
       <div class="form-group">
-        <label class="form-label">
-          <span class="label-icon"></span> CAPTCHA Verification
-        </label>
-        <div class="captcha-container">
-          <div class="captcha-image-wrapper">
-            <img id="captchaImage" src="/api/auth/captcha" alt="CAPTCHA word challenge" class="captcha-image captcha-word-image">
-            <button type="button" id="refreshCaptcha" class="captcha-refresh"
-                    onclick="refreshCaptcha()" title="Get new CAPTCHA">↻ New word</button>
-          </div>
-          <div style="flex:1">
-            <input type="text" id="captchaAnswer" class="form-input captcha-input"
-                   placeholder="Type the letters above"
-                   maxlength="6" autocomplete="off"
-                   spellcheck="false" autocorrect="off" autocapitalize="characters" required>
-            <span class="form-error" id="captchaError"></span>
-          </div>
-        </div>
-        <span class="form-hint">Type the 6 characters shown in the image &mdash; letters are not case-sensitive</span>
+        <div class="g-recaptcha" data-sitekey="6Lc8zpQsAAAAAMvMGcOQ4Pgsaqkf_ogHomZwEXWB"></div>
+        <span class="form-error" id="recaptchaError"></span>
       </div>
 
       <!-- Submit -->
@@ -186,13 +170,6 @@
         <div class="feature-item">
           <span class="feature-icon"></span>
           <div>
-            <h3>CAPTCHA Bot Prevention</h3>
-            <p>Distorted word-image CAPTCHA blocks automated registrations — type the letters you see.</p>
-          </div>
-        </div>
-        <div class="feature-item">
-          <span class="feature-icon"></span>
-          <div>
             <h3>Rate Limiting</h3>
             <p>IP-based throttling prevents brute-force and abuse (5 attempts / 15 min).</p>
           </div>
@@ -210,6 +187,7 @@
 
 </div>
 
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script src="/js/register.js"></script>
 </body>
 </html>

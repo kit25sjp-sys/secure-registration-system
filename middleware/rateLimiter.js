@@ -1,6 +1,6 @@
 const rateLimit = require('express-rate-limit');
 
-/* ── Registration: max 5 attempts per 15 min per IP ── */
+// ── Registration: max 5 attempts per 15 min per IP ──
 const registrationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
@@ -12,7 +12,7 @@ const registrationLimiter = rateLimit({
   },
 });
 
-/* ── Login: max 10 attempts per 15 min per IP ── */
+// ── Login: max 10 attempts per 15 min per IP ––
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -24,7 +24,7 @@ const loginLimiter = rateLimit({
   },
 });
 
-/* ── CAPTCHA endpoint: max 30 requests per 5 min ── */
+// ── CAPTCHA endpoint: max 30 requests per 5 min ––
 const captchaLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 30,
@@ -33,7 +33,7 @@ const captchaLimiter = rateLimit({
   message: { success: false, message: 'Too many CAPTCHA requests.' },
 });
 
-/* ── OTP resend: max 3 resend requests per 15 min per IP ── */
+// ── OTP resend: max 3 resend requests per 15 min per IP ––
 const otpResendLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 3,
@@ -45,7 +45,7 @@ const otpResendLimiter = rateLimit({
   },
 });
 
-/* ── OTP verify: max 10 attempts per 15 min per IP ── */
+// ── OTP verify: max 10 attempts per 15 min per IP ––
 const otpVerifyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,

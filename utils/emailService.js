@@ -1,14 +1,14 @@
 const nodemailer = require('nodemailer');
 
-/* ──────────────────────────────────────────────────────────────
-   Build the Gmail SMTP transporter.
-   Requires EMAIL_USER (Gmail address) and EMAIL_PASS (App Password)
-   in .env.  Falls back to Ethereal if credentials are not set.
-
-   Gmail App Password setup:
-     myaccount.google.com → Security → 2-Step Verification → App passwords
-     Select app: Mail  |  Select device: Other → Generate
-──────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────
+// Build the Gmail SMTP transporter.
+// Requires EMAIL_USER (Gmail address) and EMAIL_PASS (App Password)
+// in .env.  Falls back to Ethereal if credentials are not set.
+//
+// Gmail App Password setup:
+//   myaccount.google.com → Security → 2-Step Verification → App passwords
+//   Select app: Mail  |  Select device: Other → Generate
+// ──────────────────────────────────────────────────────────────
 function isGmailConfigured() {
   return !!(
     process.env.EMAIL_USER &&
@@ -19,7 +19,7 @@ function isGmailConfigured() {
 
 async function createTransporter() {
   if (isGmailConfigured()) {
-    /* ── Gmail SMTP via service shorthand ── */
+    // ── Gmail SMTP via service shorthand ––
     return nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -29,7 +29,7 @@ async function createTransporter() {
     });
   }
 
-  /* ── Fallback: Ethereal (dev / demo) ── */
+  // ── Fallback: Ethereal (dev / demo) ––
   console.warn('⚠️  EMAIL_PASS not set – falling back to Ethereal demo SMTP.');
   const testAccount = await nodemailer.createTestAccount();
   return nodemailer.createTransport({
@@ -40,9 +40,9 @@ async function createTransporter() {
   });
 }
 
-/* ──────────────────────────────────────────────────────────────
-   Send account verification email
-──────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────
+// Send account verification email
+// ──────────────────────────────────────────────────────────────
 async function sendVerificationEmail(email, username, token) {
   const baseUrl         = process.env.BASE_URL || 'http://localhost:3000';
   const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
@@ -91,7 +91,7 @@ async function sendVerificationEmail(email, username, token) {
     html,
   });
 
-  /* In dev/demo mode log the Ethereal preview URL */
+  // In dev/demo mode log the Ethereal preview URL
   const preview = nodemailer.getTestMessageUrl(info);
   if (preview) {
     console.log(`📧  Email preview (Ethereal): ${preview}`);
@@ -100,12 +100,12 @@ async function sendVerificationEmail(email, username, token) {
   return info;
 }
 
-/* ──────────────────────────────────────────────────────────────
-   Send OTP verification email
-   otp  – plain 6-digit code (only used here; never stored plain)
-──────────────────────────────────────────────────────────────── */
+// ───────────────────────────────────────────────────────────────
+// Send OTP verification email
+// otp  – plain 6-digit code (only used here; never stored plain)
+// ───────────────────────────────────────────────────────────────
 async function sendOTPEmail(email, username, otp) {
-  /* Split OTP into individual digits for visual box display */
+  // Split OTP into individual digits for visual box display
   const digits = otp.split('').map(d =>
     `<span style="display:inline-block;width:44px;height:54px;line-height:54px;text-align:center;font-size:28px;font-weight:800;background:#f4f3ff;border:2px solid #6c63ff;border-radius:10px;color:#6c63ff;margin:0 4px">${d}</span>`
   ).join('');

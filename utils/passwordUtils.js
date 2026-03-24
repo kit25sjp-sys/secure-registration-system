@@ -1,7 +1,7 @@
-/* ──────────────────────────────────────────────────────────────
-   Password strength evaluator
-   Returns: { score, strength, label, suggestions, checks }
-──────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────
+// Password strength evaluator
+// Returns: { score, strength, label, suggestions, checks }
+// ──────────────────────────────────────────────────────────────
 
 const COMMON_PASSWORDS = new Set([
   'password','password1','password123','12345678','123456789',
@@ -18,12 +18,12 @@ function checkPasswordStrength(password) {
   const suggestions = [];
   let score = 0;
 
-  /* ── Length scoring ── */
+  // ── Length scoring ––
   if (password.length >= 8)  { score += 1; } else { suggestions.push('Use at least 8 characters'); }
   if (password.length >= 12) { score += 1; } else { suggestions.push('Use 12+ characters for better security'); }
   if (password.length >= 16) { score += 1; }
 
-  /* ── Character diversity ── */
+  // ── Character diversity ––
   const hasLower   = /[a-z]/.test(password);
   const hasUpper   = /[A-Z]/.test(password);
   const hasNumber  = /\d/.test(password);
@@ -34,7 +34,7 @@ function checkPasswordStrength(password) {
   if (hasNumber)  { score += 1; } else { suggestions.push('Add numbers (0–9)'); }
   if (hasSpecial) { score += 2; } else { suggestions.push('Add special characters (!, @, #, $, ...)'); }
 
-  /* ── Penalties ── */
+  // ── Penalties ––
   if (COMMON_PASSWORDS.has(password.toLowerCase())) {
     score -= 3;
     suggestions.unshift('This is a commonly used password — choose something more unique');
@@ -77,9 +77,9 @@ function checkPasswordStrength(password) {
   };
 }
 
-/* ──────────────────────────────────────────────────────────────
-   Password reuse check (checks last 5 hashed passwords)
-──────────────────────────────────────────────────────────────── */
+// ───────────────────────────────────────────────────────────────
+// Password reuse check (checks last 5 hashed passwords)
+// ───────────────────────────────────────────────────────────────
 async function isPasswordInHistory(userId, newPassword, db) {
   const bcrypt  = require('bcryptjs');
   const history = db

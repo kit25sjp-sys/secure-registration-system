@@ -1,12 +1,12 @@
-/* ════════════════════════════════════════════════════════════
-   change-password.js  –  Change-Password page JavaScript
-   Handles:
-     • Session guard (redirect to /login if unauthenticated)
-     • Password-toggle eye buttons
-     • Live password-strength meter & requirements checklist
-     • Form submission → POST /api/auth/change-password
-     • Displays "cannot reuse old password" and other API errors
-════════════════════════════════════════════════════════════ */
+// ══════════════════════════════════════════════════════════════
+// change-password.js  –  Change-Password page JavaScript
+// Handles:
+//   • Session guard (redirect to /login if unauthenticated)
+//   • Password-toggle eye buttons
+//   • Live password-strength meter & requirements checklist
+//   • Form submission → POST /api/auth/change-password
+//   • Displays "cannot reuse old password" and other API errors
+// ══════════════════════════════════════════════════════════════
 
 /* ── Alert helpers ──────────────────────────────────────── */
 function showAlert(msg, type = 'error') {
@@ -46,7 +46,7 @@ function updateStrengthUI(score, checks) {
   label.textContent  = score > 0 ? STRENGTH_LABELS[score] : 'Password strength';
   label.style.color  = color;
 
-  /* Requirements ticks */
+  // Requirements ticks
   const map = {
     'req-length' : checks?.length,
     'req-upper'  : checks?.uppercase,
@@ -70,9 +70,9 @@ function debounce(fn, ms) {
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
-/* ════════════════════════════════════════════════════════════
-   Main init
-════════════════════════════════════════════════════════════ */
+// ══════════════════════════════════════════════════════════════
+// Main init
+// ══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
 
   /* ── 1. Auth guard – must be logged in ─────────────── */
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  /* ── 3. Live strength meter for new password ────────── */
+  // ── 3. Live strength meter for new password ─────────
   const newPassInput = document.getElementById('newPasswordInput');
   const checkStrength = debounce(async (val) => {
     if (!val) { updateStrengthUI(0, {}); return; }
@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       const d = await r.json();
       if (d.success) updateStrengthUI(d.score, d.checks);
-    } catch { /* silent */ }
+    } catch { // silent }
   }, 300);
 
   newPassInput.addEventListener('input', () => {
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     newPassInput.classList.remove('error');
   });
 
-  /* ── 4. Clear errors on typing ──────────────────────── */
+  // ── 4. Clear errors on typing ──────────────────
   document.getElementById('oldPasswordInput').addEventListener('input', () => {
     document.getElementById('oldPasswordError').textContent = '';
     document.getElementById('oldPasswordInput').classList.remove('error');
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const newPassword     = document.getElementById('newPasswordInput').value;
     const confirmPassword = document.getElementById('confirmPasswordInput').value;
 
-    /* ── Client-side validation ── */
+    // ── Client-side validation ––
     let valid = true;
 
     if (!oldPassword) {
@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!valid) return;
 
-    /* ── Submit to API ── */
+    // ── Submit to API ––
     const btnText   = document.getElementById('submitBtnText');
     const btnLoader = document.getElementById('submitBtnLoader');
     btnText.classList.add('hidden');
@@ -205,13 +205,13 @@ document.addEventListener('DOMContentLoaded', async () => {
            You will be redirected to the login page to sign in with your new password.`,
           'success'
         );
-        /* Clear the form fields so the password is gone from the DOM */
+        // Clear the form fields so the password is gone from the DOM
         form.reset();
         updateStrengthUI(0, {});
         submitBtn.disabled = true;
         setTimeout(() => window.location.replace('/login?passwordChanged=1'), 2500);
       } else {
-        /* Check for the password-reuse rejection specifically */
+        // Check for the password-reuse rejection specifically
         if (data.message && data.message.toLowerCase().includes('cannot reuse')) {
           showAlert(
             `<strong>&#128683; Password Reuse Detected</strong><br>${data.message}`,

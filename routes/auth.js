@@ -2,6 +2,7 @@ const express   = require('express');
 const router    = express.Router();
 const bcrypt    = require('bcryptjs');
 const crypto    = require('crypto');
+const https     = require('https');
 const { body, validationResult } = require('express-validator');
 
 const { getDb }                      = require('../database/db');
@@ -9,116 +10,72 @@ const { checkPasswordStrength }      = require('../utils/passwordUtils');
 const { sendOTPEmail }               = require('../utils/emailService');
 const {
   registrationLimiter, loginLimiter,
-  captchaLimiter, otpResendLimiter, otpVerifyLimiter,
+  otpResendLimiter, otpVerifyLimiter,
 } = require('../middleware/rateLimiter');
 
-/* ═══════════════════════════════════════════════════════════
-   Helper – generate a cryptographically secure 6-digit OTP
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// Helper – generate a cryptographically secure 6-digit OTP
+// ═══════════════════════════════════════════════════════════
 function generateOTP() {
-  /* crypto.randomInt is CSPRNG – safe against prediction */
+  // crypto.randomInt is CSPRNG – safe against prediction
   return crypto.randomInt(100000, 999999).toString();
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CAPTCHA – Distorted word image (SVG, no external API)
-   Generates a random 6-char alphanumeric word and renders it
-   with per-character rotation, wave-path warp, noise lines
-   and dot spatter so OCR tools cannot trivially solve it.
-═══════════════════════════════════════════════════════════ */
-
-/* Pool: uppercase letters + digits, deliberately excludes 0/O/1/I/l to avoid confusion */
-const CAPTCHA_POOL = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-function generateCaptchaWord(len = 6) {
-  let word = '';
-  for (let i = 0; i < len; i++) {
-    word += CAPTCHA_POOL[crypto.randomInt(0, CAPTCHA_POOL.length)];
+// ═══════════════════════════════════════════════════════════
+// Helper – verify Google reCAPTCHA token
+// ═══════════════════════════════════════════════════════════
+async function verifyRecaptcha(token) {
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY || '6Lc8zpQsAAAAAB6bhl9oSoIlKmGPdadWjpoHlRgQ';
+  if (!secretKey) {
+    return { success: false, message: 'reCAPTCHA is not configured on the server.' };
   }
-  return word;
+  if (!token) {
+    return { success: false, message: 'reCAPTCHA token is missing' };
+  }
+  
+  return new Promise((resolve) => {
+    const postData = `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(token)}`;
+
+    const options = {
+      hostname: 'www.google.com',
+      path: '/recaptcha/api/siteverify',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(postData),
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(data);
+          if (result.success) {
+            resolve({ success: true });
+          } else {
+            resolve({ success: false, message: 'CAPTCHA failed. Try again.' });
+          }
+        } catch (err) {
+          resolve({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      console.error('reCAPTCHA verification error:', err.message);
+      resolve({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
+    });
+
+    req.write(postData);
+    req.end();
+  });
 }
 
-function buildWordCaptchaSVG(word) {
-  const W = 240, H = 70;
-  const COLORS = ['#1a1a2e','#0f3460','#4a235a','#1b4332','#6c0000','#003366'];
-  const BG_COLORS = ['#eef0f8','#f0f4ee','#f5eeff','#fff8ee','#eef8ff'];
-  const bg = BG_COLORS[crypto.randomInt(0, BG_COLORS.length)];
-
-  /* --- noise lines --- */
-  let lines = '';
-  for (let i = 0; i < 8; i++) {
-    const x1 = crypto.randomInt(0, W), y1 = crypto.randomInt(0, H);
-    const x2 = crypto.randomInt(0, W), y2 = crypto.randomInt(0, H);
-    const stroke = COLORS[crypto.randomInt(0, COLORS.length)];
-    lines += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="1.2" opacity="0.35"/>`;
-  }
-
-  /* --- dot spatter --- */
-  let dots = '';
-  for (let i = 0; i < 50; i++) {
-    const cx = crypto.randomInt(0, W), cy = crypto.randomInt(0, H);
-    const r  = (0.8 + Math.random() * 1.4).toFixed(1);
-    const fill = COLORS[crypto.randomInt(0, COLORS.length)];
-    dots += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" opacity="0.3"/>`;
-  }
-
-  /* --- characters --- */
-  let chars = '';
-  const step = (W - 24) / word.length;
-  for (let i = 0; i < word.length; i++) {
-    const x    = 12 + i * step + step / 2;
-    /* wave baseline: each char sits on a sine curve */
-    const wave = Math.sin(i * 1.1) * 7;
-    const y    = 40 + wave;
-    const rot  = (crypto.randomInt(0, 30) - 15).toFixed(1);
-    const size = 22 + crypto.randomInt(0, 10);
-    /* alternate between two dark colours per char */
-    const fill = COLORS[i % COLORS.length];
-    /* slight skew via transform */
-    const skew = (Math.random() * 16 - 8).toFixed(1);
-    chars += `<text x="${x}" y="${y}"
-      transform="rotate(${rot},${x},${y}) skewX(${skew})"
-      font-size="${size}"
-      fill="${fill}"
-      font-family="'Arial Black','Arial',sans-serif"
-      font-weight="900"
-      text-anchor="middle"
-      dominant-baseline="middle"
-      letter-spacing="1">${word[i]}</text>`;
-  }
-
-  /* --- wavy clip path to add extra distortion --- */
-  const A = 3 + Math.random() * 3;
-  const f = 0.04 + Math.random() * 0.03;
-  let wavePath = `M0,0 L${W},0 L${W},${H} `;
-  for (let x = W; x >= 0; x -= 4) {
-    wavePath += `L${x},${(H + A * Math.sin(x * f)).toFixed(1)} `;
-  }
-  wavePath += 'Z';
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="background:${bg};border-radius:8px;display:block">
-  <defs>
-    <clipPath id="wc"><path d="${wavePath}"/></clipPath>
-  </defs>
-  <g clip-path="url(#wc)">${lines}${dots}${chars}</g>
-</svg>`;
-}
-
-router.get('/captcha', captchaLimiter, (req, res) => {
-  const word = generateCaptchaWord(6);
-  req.session.captchaAnswer  = word.toUpperCase();
-  req.session.captchaExpires = Date.now() + 10 * 60 * 1000;
-
-  res.setHeader('Content-Type', 'image/svg+xml');
-  res.setHeader('Cache-Control', 'no-store');
-  res.send(buildWordCaptchaSVG(word));
-});
-
-function rand(n) { return (Math.random() * n).toFixed(1); }
-
-/* ═══════════════════════════════════════════════════════════
-   Validation rules
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// Validation rules
+// ═══════════════════════════════════════════════════════════
 const registerValidation = [
   body('username')
     .trim().isLength({ min: 3, max: 30 }).withMessage('Username must be 3–30 characters')
@@ -134,35 +91,29 @@ const registerValidation = [
     }),
 ];
 
-/* ═══════════════════════════════════════════════════════════
-   POST /api/auth/register
-   Registers user, generates OTP, sends to email.
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// POST /api/auth/register
+// Registers user, generates OTP, sends to email.
+// ═══════════════════════════════════════════════════════════
 router.post('/register', registrationLimiter, registerValidation, async (req, res) => {
   try {
-    /* ── 1. express-validator ── */
+    // ── 1. express-validator ––
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ success: false, message: errors.array()[0].msg });
     }
 
-    const { username, email, password, captchaAnswer } = req.body;
+    const { username, email, password } = req.body;
+    const recaptchaToken = req.body.recaptchaToken || req.body['g-recaptcha-response'];
     const ip = req.ip || req.connection.remoteAddress;
 
-    /* ── 2. CAPTCHA verification ── */
-    if (!req.session.captchaAnswer || Date.now() > req.session.captchaExpires) {
-      delete req.session.captchaAnswer;
-      return res.status(400).json({ success: false, message: 'CAPTCHA expired. Please refresh the image and try again.' });
+    // ── 2. reCAPTCHA verification ––
+    const recaptchaResult = await verifyRecaptcha(recaptchaToken);
+    if (!recaptchaResult.success) {
+      return res.status(400).json({ success: false, message: recaptchaResult.message });
     }
-    if (!captchaAnswer || captchaAnswer.toString().trim().toUpperCase() !== req.session.captchaAnswer) {
-      delete req.session.captchaAnswer;
-      getDb().prepare('INSERT INTO suspicious_activities (type, description, ip_address) VALUES (?,?,?)')
-        .run('CAPTCHA_FAIL', `Failed word-CAPTCHA for email: ${email}`, ip);
-      return res.status(400).json({ success: false, message: 'Incorrect CAPTCHA text. Please try again.' });
-    }
-    delete req.session.captchaAnswer;
 
-    /* ── 3. Server-side password strength ── */
+    // ── 3. Server-side password strength ––
     const strengthResult = checkPasswordStrength(password);
     if (strengthResult.score < 2) {
       return res.status(400).json({
@@ -174,7 +125,7 @@ router.post('/register', registrationLimiter, registerValidation, async (req, re
 
     const db = getDb();
 
-    /* ── 4. Duplicate check ── */
+    // ── 4. Duplicate check ––
     const dupUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
     if (dupUser) return res.status(409).json({ success: false, message: 'Username already taken.' });
 
@@ -183,14 +134,14 @@ router.post('/register', registrationLimiter, registerValidation, async (req, re
       if (dupEmail.is_verified) {
         return res.status(409).json({ success: false, message: 'Email address already registered.' });
       }
-      /* Unverified duplicate – re-send a fresh OTP to let them complete verification */
+      // Unverified duplicate – re-send a fresh OTP to let them complete verification
       const otp        = generateOTP();
       const otpHash    = await bcrypt.hash(otp, 10);
       const otpExpires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       db.prepare('UPDATE users SET otp_hash=?, otp_expires=?, otp_attempts=0 WHERE id=?')
         .run(otpHash, otpExpires, dupEmail.id);
 
-      /* Send fresh OTP email */
+      // Send fresh OTP email
       const existingUser = db.prepare('SELECT username FROM users WHERE id=?').get(dupEmail.id);
       try {
         await sendOTPEmail(email, existingUser.username, otp);
@@ -206,32 +157,32 @@ router.post('/register', registrationLimiter, registerValidation, async (req, re
       });
     }
 
-    /* ── 5. Hash password ── */
+    // ── 5. Hash password ––
     const passwordHash = await bcrypt.hash(password, 12);
 
-    /* ── 6. Generate OTP (CSPRNG) ── */
+    // ── 6. Generate OTP (CSPRNG) ––
     const otp        = generateOTP();
     const otpHash    = await bcrypt.hash(otp, 10);
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes
 
-    /* ── 7. Persist user (unverified) ── */
+    // ── 7. Persist user (unverified) ––
     const result = db.prepare(`
       INSERT INTO users
         (username, email, password_hash, otp_hash, otp_expires, otp_attempts, ip_address)
       VALUES (?, ?, ?, ?, ?, 0, ?)
     `).run(username, email, passwordHash, otpHash, otpExpires, ip);
 
-    /* ── 8. Store initial password history (reuse prevention) ── */
+    // ── 8. Store initial password history (reuse prevention) ––
     db.prepare('INSERT INTO password_history (user_id, password_hash) VALUES (?, ?)')
       .run(result.lastInsertRowid, passwordHash);
 
-    /* ── 9. Send OTP email ── */
+    // ── 9. Send OTP email ––
     try {
       await sendOTPEmail(email, username, otp);
       console.log(`📧  OTP sent to ${email}`);
     } catch (emailErr) {
       console.error('Failed to send OTP email:', emailErr.message);
-      /* Registration succeeded even if email fails – user can resend */
+      // Registration succeeded even if email fails – user can resend
     }
 
     return res.status(201).json({
@@ -246,13 +197,13 @@ router.post('/register', registrationLimiter, registerValidation, async (req, re
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   POST /api/auth/verify-otp
-   Validates OTP entered by the user.
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// POST /api/auth/verify-otp
+// Validates OTP entered by the user.
+// ═══════════════════════════════════════════════════════════
 router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
   try {
-    /* XSS / injection sanitization */
+    // XSS / injection sanitization
     const email = String(req.body.email || '').trim().toLowerCase().substring(0, 254);
     const otp   = String(req.body.otp   || '').trim().replace(/\D/g, '').substring(0, 6);
 
@@ -263,7 +214,7 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
     const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
     if (!user) return res.status(400).json({ success: false, message: 'No account found for this email.' });
-    /* If account is verified and there is no active OTP challenge, this is likely a stale verify attempt. */
+    // If account is verified and there is no active OTP challenge, this is likely a stale verify attempt.
     if (user.is_verified && (!user.otp_hash || !user.otp_expires)) {
       return res.json({ success: true, alreadyVerified: true, message: 'Account already verified. You can log in.' });
     }
@@ -272,25 +223,25 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: 'No OTP found. Please request a new one.', expired: true });
     }
 
-    /* ── Check expiry ── */
+    // ── Check expiry ––
     if (new Date(user.otp_expires) < new Date()) {
       db.prepare('UPDATE users SET otp_hash=NULL, otp_expires=NULL, otp_attempts=0 WHERE id=?').run(user.id);
       return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.', expired: true });
     }
 
-    /* ── Check attempt count (max 3 wrong) ── */
+    // ── Check attempt count (max 3 wrong) ––
     if (user.otp_attempts >= 3) {
       db.prepare('UPDATE users SET otp_hash=NULL, otp_expires=NULL, otp_attempts=0 WHERE id=?').run(user.id);
       return res.status(400).json({ success: false, message: 'Too many wrong attempts. Please request a new OTP.', tooManyAttempts: true });
     }
 
-    /* ── Compare OTP against hash ── */
+    // ── Compare OTP against hash ––
     const match = await bcrypt.compare(otp, user.otp_hash);
     if (!match) {
       const newAttempts = user.otp_attempts + 1;
       db.prepare('UPDATE users SET otp_attempts=? WHERE id=?').run(newAttempts, user.id);
 
-      /* Log suspicious repeated failures */
+      // Log suspicious repeated failures
       if (newAttempts >= 2) {
         const ip = req.ip || req.connection.remoteAddress;
         db.prepare('INSERT INTO suspicious_activities (type,description,ip_address,user_id) VALUES (?,?,?,?)')
@@ -305,21 +256,21 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: `Incorrect OTP. ${remaining} attempt(s) remaining.` });
     }
 
-    /* ── ✅ OTP correct – verify and log in ── */
+    // ── ✅ OTP correct – verify and log in ––
     db.prepare('UPDATE users SET is_verified=1, otp_hash=NULL, otp_expires=NULL, otp_attempts=0, failed_attempts=0, locked_until=NULL, last_login=datetime(\'now\') WHERE id=?').run(user.id);
 
-    /* Log successful login */
+    // Log successful login
     const ip = req.ip || req.connection.remoteAddress;
     db.prepare('INSERT INTO login_attempts (email, ip_address, success) VALUES (?,?,?)')
       .run(email, ip, 1);
 
-    /* Create session - user is now logged in */
+    // Create session - user is now logged in
     req.session.userId   = user.id;
     req.session.username = user.username;
     req.session.email    = user.email;
     req.session.role     = user.role || 'user';
 
-    /* Save session before responding */
+    // Save session before responding
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
@@ -344,10 +295,10 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   POST /api/auth/resend-otp
-   Generates a fresh OTP and resends it (rate-limited).
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// POST /api/auth/resend-otp
+// Generates a fresh OTP and resends it (rate-limited).
+// ═══════════════════════════════════════════════════════════
 router.post('/resend-otp', otpResendLimiter, async (req, res) => {
   try {
     const email = String(req.body.email || '').trim().toLowerCase().substring(0, 254);
@@ -359,7 +310,7 @@ router.post('/resend-otp', otpResendLimiter, async (req, res) => {
     if (!user) return res.status(400).json({ success: false, message: 'No account found for that email.' });
     if (!user.is_active) return res.status(403).json({ success: false, message: 'Your account has been deactivated. Contact support.' });
 
-    /* Generate new OTP */
+    // Generate new OTP
     const otp        = generateOTP();
     const otpHash    = await bcrypt.hash(otp, 10);
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
@@ -367,7 +318,7 @@ router.post('/resend-otp', otpResendLimiter, async (req, res) => {
     db.prepare('UPDATE users SET otp_hash=?, otp_expires=?, otp_attempts=0 WHERE id=?')
       .run(otpHash, otpExpires, user.id);
 
-    /* Send new OTP email */
+    // Send new OTP email
     try {
       await sendOTPEmail(email, user.username, otp);
       console.log(`📧  OTP re-sent to ${email}`);
@@ -386,9 +337,9 @@ router.post('/resend-otp', otpResendLimiter, async (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   POST /api/auth/login
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// POST /api/auth/login
+// ═══════════════════════════════════════════════════════════
 router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -413,13 +364,13 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     if (!user) { logAttempt(false); return res.status(401).json({ success: false, message: 'Invalid email or password.' }); }
 
-    /* Account locked */
+    // Account locked
     if (user.locked_until && new Date(user.locked_until) > new Date()) {
       const t = new Date(user.locked_until).toLocaleTimeString();
       return res.status(423).json({ success: false, message: `Account locked. Try again after ${t}.` });
     }
 
-    /* Wrong password */
+    // Wrong password
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
       const attempts = user.failed_attempts + 1;
@@ -436,13 +387,13 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ success: false, message: `Invalid email or password. ${5 - attempts} attempt(s) remaining.` });
     }
 
-    /* Inactive */
+    // Inactive
     if (!user.is_active) {
       logAttempt(false);
       return res.status(403).json({ success: false, message: 'Your account has been deactivated. Contact support.' });
     }
 
-    /* Password is correct: always require OTP before session login */
+    // Password is correct: always require OTP before session login
     const otp        = generateOTP();
     const otpHash    = await bcrypt.hash(otp, 10);
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
@@ -470,9 +421,9 @@ router.post('/login', loginLimiter, async (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   GET /api/auth/me  –  fetch fresh user data (incl. role) from DB
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// GET /api/auth/me  –  fetch fresh user data (incl. role) from DB
+// ═══════════════════════════════════════════════════════════
 router.get('/me', (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ success: false, message: 'Not authenticated.' });
@@ -488,7 +439,7 @@ router.get('/me', (req, res) => {
       req.session.destroy(() => {});
       return res.status(403).json({ success: false, message: 'Account has been deactivated.' });
     }
-    /* Keep session role in sync with DB */
+    // Keep session role in sync with DB
     req.session.role = user.role || 'user';
     return res.json({
       success: true,
@@ -505,9 +456,9 @@ router.get('/me', (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   POST /api/auth/logout
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// POST /api/auth/logout
+// ═══════════════════════════════════════════════════════════
 router.post('/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) return res.status(500).json({ success: false, message: 'Logout failed.' });
@@ -516,17 +467,17 @@ router.post('/logout', (req, res) => {
   });
 });
 
-/* ═══════════════════════════════════════════════════════════
-   POST /api/auth/change-password
-   Requires an active session (logged-in user only).
-   1. Verify old password
-   2. Check password reuse against full history (current + past)
-   3. Hash & update current password
-   4. Append new hash to password_history
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// POST /api/auth/change-password
+// Requires an active session (logged-in user only).
+// 1. Verify old password
+// 2. Check password reuse against full history (current + past)
+// 3. Hash & update current password
+// 4. Append new hash to password_history
+// ═══════════════════════════════════════════════════════════
 router.post('/change-password', async (req, res) => {
   try {
-    /* ── 1. Session guard ── */
+    // ── 1. Session guard ––
     if (!req.session.userId) {
       return res.status(401).json({ success: false, message: 'You must be logged in to change your password.' });
     }
@@ -537,12 +488,12 @@ router.post('/change-password', async (req, res) => {
       return res.status(400).json({ success: false, message: 'All three password fields are required.' });
     }
 
-    /* ── 2. New password must match confirm ── */
+    // ── 2. New password must match confirm ––
     if (newPassword !== confirmPassword) {
       return res.status(400).json({ success: false, message: 'New password and confirmation do not match.' });
     }
 
-    /* ── 3. Enforce minimum strength on the new password ── */
+    // ── 3. Enforce minimum strength on the new password ––
     const strengthResult = checkPasswordStrength(newPassword);
     if (strengthResult.score < 2) {
       return res.status(400).json({
@@ -559,13 +510,13 @@ router.post('/change-password', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User account not found.' });
     }
 
-    /* ── 4. Verify the old / current password ── */
+    // ── 4. Verify the old / current password ––
     const oldMatch = await bcrypt.compare(oldPassword, user.password_hash);
     if (!oldMatch) {
       return res.status(401).json({ success: false, message: 'Old password is incorrect.' });
     }
 
-    /* ── 5. Password-reuse check against full history ── */
+    // ── 5. Password-reuse check against full history ––
     const historyRows = db.prepare(
       'SELECT password_hash FROM password_history WHERE user_id = ? ORDER BY created_at DESC'
     ).all(user.id);
@@ -580,13 +531,13 @@ router.post('/change-password', async (req, res) => {
       }
     }
 
-    /* ── 6. Hash and persist the new password ── */
+    // ── 6. Hash and persist the new password ––
     const newHash = await bcrypt.hash(newPassword, 12);
 
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, user.id);
     db.prepare('INSERT INTO password_history (user_id, password_hash) VALUES (?, ?)').run(user.id, newHash);
 
-    /* Optionally keep only the last 5 history entries to avoid unbounded growth */
+    // Optionally keep only the last 5 history entries to avoid unbounded growth
     const histCount = db.prepare('SELECT COUNT(*) AS cnt FROM password_history WHERE user_id = ?').get(user.id);
     if (histCount && histCount.cnt > 5) {
       const oldest = db.prepare(
@@ -597,7 +548,7 @@ router.post('/change-password', async (req, res) => {
       }
     }
 
-    /* ── 7. Destroy session – user must log in again with new password ── */
+    // ── 7. Destroy session – user must log in again with new password ––
     req.session.destroy(() => {
       res.clearCookie('connect.sid');
       return res.json({ success: true, message: 'Password changed successfully! Please log in with your new password.' });
@@ -609,9 +560,9 @@ router.post('/change-password', async (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════
-   POST /api/auth/check-password  (live strength check)
-═══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════
+// POST /api/auth/check-password  (live strength check)
+// ═══════════════════════════════════════════════════════════
 router.post('/check-password', (req, res) => {
   const { password } = req.body;
   if (!password) return res.status(400).json({ success: false, message: 'Password required.' });

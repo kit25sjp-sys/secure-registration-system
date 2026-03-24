@@ -14,13 +14,13 @@ const { initDatabase } = require('./database/db');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-/* ──────────────────────────────────────────────
-   Database bootstrap  (handled in startServer)
-────────────────────────────────────────────── */
+// ──────────────────────────────────────────────
+// Database bootstrap  (handled in startServer)
+// ────────────────────────────────────────────
 
-/* ──────────────────────────────────────────────
-   Security headers (helmet)
-────────────────────────────────────────────── */
+// ──────────────────────────────────────────────
+// Security headers (helmet)
+// ────────────────────────────────────────────
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -37,9 +37,9 @@ app.use(
   })
 );
 
-/* ──────────────────────────────────────────────
-   CORS
-────────────────────────────────────────────── */
+// ──────────────────────────────────────────────
+// CORS
+// ────────────────────────────────────────────
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || `http://localhost:${PORT}`,
@@ -47,16 +47,16 @@ app.use(
   })
 );
 
-/* ──────────────────────────────────────────────
-   Body parsers
-────────────────────────────────────────────── */
+// ──────────────────────────────────────────────
+// Body parsers
+// ────────────────────────────────────────────
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 
-/* ──────────────────────────────────────────────
-   Session (used for CAPTCHA challenge storage)
-────────────────────────────────────────────── */
+// ──────────────────────────────────────────────
+// Session
+// ────────────────────────────────────────────
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
@@ -70,21 +70,21 @@ app.use(
   })
 );
 
-/* ──────────────────────────────────────────────
-   Static files
-────────────────────────────────────────────── */
+// ──────────────────────────────────────────────
+// Static files
+// ────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
-/* ──────────────────────────────────────────────
-   API routes
-────────────────────────────────────────────── */
+// ──────────────────────────────────────────────
+// API routes
+// ────────────────────────────────────────────
 app.use('/api/auth',   authRoutes);
 app.use('/api/admin',  adminRoutes);
 app.use('/api/editor', editorRoutes);
 
-/* ──────────────────────────────────────────────
-   Page routes
-────────────────────────────────────────────── */
+// ──────────────────────────────────────────────
+// Page routes
+// ────────────────────────────────────────────
 app.get('/',                (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/login',           (_req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/otp-verify',      (_req, res) => res.sendFile(path.join(__dirname, 'public', 'otp-verify.html')));
@@ -93,9 +93,9 @@ app.get('/dashboard',       (_req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/editor',          (_req, res) => res.sendFile(path.join(__dirname, 'public', 'editor.html')));
 app.get('/change-password', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'change-password.html')));
 
-/* ──────────────────────────────────────────────
-   Error handlers
-────────────────────────────────────────────── */
+// ──────────────────────────────────────────────
+// Error handlers
+// ────────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ success: false, message: 'Resource not found' }));
 
 // eslint-disable-next-line no-unused-vars
@@ -104,9 +104,9 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
-/* ──────────────────────────────────────────────
-   Start  (async so we can await initDatabase)
-────────────────────────────────────────────── */
+// ──────────────────────────────────────────────
+// Start  (async so we can await initDatabase)
+// ────────────────────────────────────────────
 async function startServer() {
   try {
     await initDatabase();

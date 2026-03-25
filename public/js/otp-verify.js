@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   email = params.get('email') || '';
 
   if (!email) {
-    showAlert('danger', 'No email address provided. Please register again.');
+    showAlert('No email address provided. Please register again.', 'danger');
     document.getElementById('verifyBtn').disabled = true;
     return;
   }
@@ -46,18 +46,7 @@ function showDemoOtp(_otp) {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
-function maskEmail(e) {
-  const [user, domain] = e.split('@');
-  if (!domain) return e;
-  const visible = user.length > 2 ? user.slice(0, 2) : user.slice(0, 1);
-  return `${visible}${'*'.repeat(Math.max(user.length - 2, 2))}@${domain}`;
-}
-
-function getOtpValue() {
-  return [...document.querySelectorAll('.otp-digit')]
-    .map(i => i.value.trim())
-    .join('');
-}
+// maskEmail & getOtpValue are imported from clientUtils.js
 
 function clearDigits() {
   document.querySelectorAll('.otp-digit').forEach(i => {
@@ -189,7 +178,7 @@ function updateTimerUI(secs) {
 }
 
 function handleExpiry() {
-  showAlert('warning', '⏰ Your OTP has expired. Please request a new one.');
+  showAlert('⏰ Your OTP has expired. Please request a new one.', 'warning');
   document.getElementById('verifyBtn').disabled = true;
   document.getElementById('timerText').textContent = 'Code expired';
   setDigitsError(true);
@@ -207,11 +196,16 @@ async function submitOTP(e) {
     return;
   }
 
+  if (!email) {
+    showAlert('Email is missing. Please go back and register again.', 'danger');
+    return;
+  }
+
   clearError();
   setLoading(true);
 
   try {
-    console.log('🔐 Submitting OTP for email:', email);
+    console.log('🔐 Submitting OTP for email:', email, 'OTP length:', otp.length);
     const res = await fetch('/api/auth/verify-otp', {
       method: 'POST',
       credentials: 'include',
@@ -223,58 +217,59 @@ async function submitOTP(e) {
     
     let data;
     try {
-      data = await res.json();
-      console.log('📦 Response data:', data);
+      const text = await res.text();
+      console.log('📦 Raw response:', text);
+      data = JSON.parse(text);
+      console.log('📦 Parsed data:', data);
     } catch (parseErr) {
       console.error('❌ JSON parse error:', parseErr);
-      showAlert('danger', 'Server returned invalid response. Please try again.');
+      showAlert('Server returned invalid response. Please try again.', 'danger');
       setLoading(false);
       return;
     }
 
     if (res.ok && data.success) {
-      showAlert('success', '✅ OTP verified! Logging you in…');
+      showAlert('✅ OTP verified! Redirecting…', 'success');
       document.getElementById('verifyBtn').disabled = true;
       
-      // Store session if this is a login (data.user will be present)
-      if (data.user) {
-        console.log('👤 User data:', data.user);
-        const sessionId = 'session_' + Date.now();
-        SessionManager.addSession(sessionId, {
-          id: data.user.id,
-          username: data.user.username,
-          email: data.user.email,
-          role: data.user.role || 'user',
-        });
-
-        // Role-based redirect
-        setTimeout(() => {
-          const role = data.user.role || 'user';
-          console.log('🔄 Redirecting to:', role);
+      console.log('✅ [Response] OTP verification successful');
+      console.log('📦 [Response] Full data:', JSON.stringify(data));
+      
+      // Redirect based on user role
+      setTimeout(() => {
+        let redirectUrl = '/dashboard';
+        
+        // Check user role from response and redirect accordingly
+        if (data.user && data.user.role) {
+          const role = data.user.role.toLowerCase();
+          console.log('👤 [Redirect] User role:', role);
+          
           if (role === 'admin') {
-            window.location.replace('/admin.html');
-          } else if (role === 'moderator' || role === 'editor') {
-            window.location.replace('/editor.html');
-          } else {
-            window.location.replace('/dashboard.html');
+            redirectUrl = '/admin';
+          } else if (role === 'moderator' || role === 'editor' || role === 'manager') {
+            redirectUrl = '/editor';
           }
-        }, 1500);
-      } else {
-        // Redirect to login if this was just email verification (registration flow)
-        console.log('📝 Email verified, redirecting to login');
-        setTimeout(() => {
-          window.location.href = '/login?verified=1';
-        }, 1500);
-      }
+        }
+        
+        console.log('🔄 [Redirect] Going to:', redirectUrl);
+        console.log('🍪 [Redirect] Cookies should be set, now navigating...');
+        window.location.replace(redirectUrl);
+      }, 1200);
+      return;
+    } else if (res.ok && data.alreadyVerified) {
+      showAlert('✅ Account already verified. Redirecting to login...', 'success');
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1000);
       return;
     }
 
     // ── Error handling ──────────────────────────────────────────
-    console.warn('⚠️ OTP verification failed:', data.message);
+    console.warn('⚠️ OTP verification failed:', data);
     if (data.expired) {
       handleExpiry();
     } else if (data.tooManyAttempts) {
-      showAlert('danger', '🚫 Too many incorrect attempts. Please request a new OTP.');
+      showAlert('🚫 Too many incorrect attempts. Please request a new OTP.', 'danger');
       document.getElementById('verifyBtn').disabled = true;
       clearInterval(countdownInterval);
       updateTimerUI(0);
@@ -284,7 +279,7 @@ async function submitOTP(e) {
       const remaining = data.attemptsRemaining != null
         ? ` (${data.attemptsRemaining} attempt${data.attemptsRemaining !== 1 ? 's' : ''} remaining)`
         : '';
-      showAlert('danger', `❌ ${data.message || 'Invalid OTP.'}${remaining}`);
+      showAlert(`❌ ${data.message || 'Invalid OTP.'}${remaining}`, 'danger');
       setDigitsError(true);
       // Shake animation
       document.getElementById('otpInputs').classList.add('shake');
@@ -293,7 +288,7 @@ async function submitOTP(e) {
     }
   } catch (err) {
     console.error('🔥 Catch error:', err);
-    showAlert('danger', `Network error: ${err.message || 'Please try again.'}`);
+    showAlert(`Network error: ${err.message || 'Please try again.'}`, 'danger');
   } finally {
     setLoading(false);
   }
@@ -305,7 +300,7 @@ async function resendOTP() {
   btn.disabled = true;
 
   clearAlert();
-  showAlert('info', '📨 Sending a new OTP…');
+  showAlert('📨 Sending a new OTP…', 'info');
 
   try {
     const res = await fetch('/api/auth/resend-otp', {
@@ -319,7 +314,7 @@ async function resendOTP() {
     if (res.status === 429) {
       document.getElementById('resendLimit').classList.remove('hidden');
       document.getElementById('resendCooldown').classList.add('hidden');
-      showAlert('warning', '⏳ Too many resend attempts. Please wait 15 minutes.');
+      showAlert('⏳ Too many resend attempts. Please wait 15 minutes.', 'warning');
       return;
     }
 
@@ -338,17 +333,17 @@ async function resendOTP() {
       
       // Start fresh countdown
       startCountdown();
-      showAlert('success', '✅ New OTP sent to your email!');
+      showAlert('✅ New OTP sent to your email!', 'success');
 
       // Cooldown before next resend
       startResendCooldown();
     } else {
-      showAlert('danger', data.message || 'Could not resend OTP. Please try again.');
+      showAlert(data.message || 'Could not resend OTP. Please try again.', 'danger');
       btn.disabled = false;
     }
   } catch (err) {
     console.error(err);
-    showAlert('danger', 'Network error. Please try again.');
+    showAlert('Network error. Please try again.', 'danger');
     btn.disabled = false;
   }
 }
@@ -381,12 +376,7 @@ function startResendCooldown() {
 }
 
 // ── UI helpers ────────────────────────────────────────────────────
-function showAlert(type, msg) {
-  const el = document.getElementById('alertContainer');
-  el.className = `alert-container alert-${type}`;
-  el.textContent = msg;
-  el.classList.remove('hidden');
-}
+// showAlert is now provided by clientUtils.js
 
 function clearAlert() {
   const el = document.getElementById('alertContainer');

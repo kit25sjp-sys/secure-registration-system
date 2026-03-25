@@ -277,17 +277,7 @@ function transitionToStep(stepNum) {
   document.getElementById(`step${stepNum}`).classList.remove('hidden');
 }
 
-function maskEmail(email) {
-  const [user, domain] = email.split('@');
-  const visible = user.length > 2 ? user.slice(0, 2) : user.slice(0, 1);
-  return `${visible}${'*'.repeat(Math.max(user.length - 2, 2))}@${domain}`;
-}
-
-function getOtpValue() {
-  return [...document.querySelectorAll('.otp-digit')]
-    .map(i => i.value.trim())
-    .join('');
-}
+// maskEmail & getOtpValue imported from clientUtils.js (to avoid duplication)
 
 function clearOtpInputs() {
   document.querySelectorAll('.otp-digit').forEach(inp => {

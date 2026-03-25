@@ -3,8 +3,157 @@ const router  = express.Router();
 const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 
-const { getDb }              = require('../database/db');
-const { adminAuthMiddleware, JWT_SECRET } = require('../middleware/adminAuth');
+const { getDb }  = require('../database/db');
+const { 
+  requireAdmin,
+  requireAdminOrView,
+  getUsers, 
+  toggleUserStatus, 
+  changeUserRole, 
+  deleteUser,
+  ROLES 
+} = require('../utils/accessControl');
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// POST /api/admin/login  –  Admin login (legacy JWT support)
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ success: false, message: 'Username and password are required.' });
+
+    const db    = getDb();
+    const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(username);
+    if (!admin) return res.status(401).json({ success: false, message: 'Invalid credentials.' });
+
+    const match = await bcrypt.compare(password, admin.password_hash);
+    if (!match)  return res.status(401).json({ success: false, message: 'Invalid credentials.' });
+
+    const JWT_SECRET = process.env.JWT_SECRET || 'admin-jwt-secret-change-in-production';
+    const token = jwt.sign(
+      { id: admin.id, username: admin.username, role: ROLES.ADMIN },
+      JWT_SECRET,
+      { expiresIn: '2h' }
+    );
+
+    return res.json({ success: true, token, username: admin.username });
+  } catch (err) {
+    console.error('Admin login error:', err);
+    return res.status(500).json({ success: false, message: 'Login failed.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GET /api/admin/stats  –  Dashboard statistics (admin/moderator/manager protected)
+// ═══════════════════════════════════════════════════════════════════════════════
+router.get('/stats', requireAdminOrView, (req, res) => {
+  try {
+    const db = getDb();
+    const q  = (sql) => db.prepare(sql).get();
+
+    return res.json({
+      success: true,
+      stats: {
+        totalUsers:          q('SELECT COUNT(*) c FROM users').c,
+        verifiedUsers:       q('SELECT COUNT(*) c FROM users WHERE is_verified=1').c,
+        unverifiedUsers:     q('SELECT COUNT(*) c FROM users WHERE is_verified=0').c,
+        activeUsers:         q('SELECT COUNT(*) c FROM users WHERE is_active=1').c,
+        lockedUsers:         q("SELECT COUNT(*) c FROM users WHERE locked_until > datetime('now')").c,
+        todayRegistrations:  q("SELECT COUNT(*) c FROM users WHERE date(created_at)=date('now')").c,
+        totalLoginAttempts:  q('SELECT COUNT(*) c FROM login_attempts').c,
+        failedLogins:        q('SELECT COUNT(*) c FROM login_attempts WHERE success=0').c,
+        suspiciousActivities: q('SELECT COUNT(*) c FROM suspicious_activities').c,
+      },
+    });
+  } catch (err) {
+    console.error('Stats error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to retrieve stats.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GET /api/admin/users  –  List all users with details
+// ═══════════════════════════════════════════════════════════════════════════════
+router.get('/users', requireAdminOrView, (req, res) => {
+  try {
+    const result = getUsers(req.session.role);
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+    return res.json(result);
+  } catch (err) {
+    console.error('Get users error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to retrieve users.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH /api/admin/users/:id/toggle  –  Activate / Deactivate user
+// ═══════════════════════════════════════════════════════════════════════════════
+router.patch('/users/:id/toggle', requireAdmin, (req, res) => {
+  const result = toggleUserStatus(req.params.id, req.session.role);
+  
+  if (!result.success) {
+    return res.status(404).json(result);
+  }
+  
+  return res.json(result);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH /api/admin/users/:id/role  –  Change user role
+// ═══════════════════════════════════════════════════════════════════════════════
+router.patch('/users/:id/role', requireAdmin, (req, res) => {
+  const result = changeUserRole(req.params.id, req.body?.role, req.session.role);
+  
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  
+  return res.json(result);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DELETE /api/admin/users/:id  –  Delete user permanently
+// ═══════════════════════════════════════════════════════════════════════════════
+router.delete('/users/:id', requireAdmin, (req, res) => {
+  const result = deleteUser(req.params.id, req.session.role);
+  
+  if (!result.success) {
+    return res.status(404).json(result);
+  }
+  
+  return res.json(result);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GET /api/admin/login-attempts  –  View login attempt history
+// ═══════════════════════════════════════════════════════════════════════════════
+router.get('/login-attempts', requireAdminOrView, (req, res) => {
+  try {
+    const db       = getDb();
+    const attempts = db.prepare('SELECT * FROM login_attempts ORDER BY attempted_at DESC LIMIT 100').all();
+    return res.json({ success: true, attempts });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to retrieve login attempts.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GET /api/admin/suspicious  –  View suspicious activity log
+// ═══════════════════════════════════════════════════════════════════════════════
+router.get('/suspicious', requireAdminOrView, (req, res) => {
+  try {
+    const db         = getDb();
+    const activities = db.prepare('SELECT * FROM suspicious_activities ORDER BY detected_at DESC LIMIT 100').all();
+    return res.json({ success: true, activities });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to retrieve suspicious activities.' });
+  }
+});
+
+module.exports = router;
 
 // ═══════════════════════════════════════════════════════════
 // POST /api/admin/login
@@ -38,7 +187,7 @@ router.post('/login', async (req, res) => {
 // ═══════════════════════════════════════════════════════════
 // GET /api/admin/stats
 // ═══════════════════════════════════════════════════════════
-router.get('/stats', adminAuthMiddleware, (req, res) => {
+router.get('/stats', requireAdmin, (req, res) => {
   try {
     const db = getDb();
     const q  = (sql) => db.prepare(sql).get();
@@ -66,7 +215,7 @@ router.get('/stats', adminAuthMiddleware, (req, res) => {
 // ═══════════════════════════════════════════════════════════
 // GET /api/admin/users
 // ═══════════════════════════════════════════════════════════
-router.get('/users', adminAuthMiddleware, (req, res) => {
+router.get('/users', requireAdmin, (req, res) => {
   try {
     const db    = getDb();
     const users = db.prepare(`
@@ -84,7 +233,7 @@ router.get('/users', adminAuthMiddleware, (req, res) => {
 // ═══════════════════════════════════════════════════════════
 // PATCH /api/admin/users/:id/toggle  – activate / deactivate
 // ═══════════════════════════════════════════════════════════
-router.patch('/users/:id/toggle', adminAuthMiddleware, (req, res) => {
+router.patch('/users/:id/toggle', requireAdmin, (req, res) => {
   try {
     const db   = getDb();
     const user = db.prepare('SELECT id, is_active FROM users WHERE id=?').get(req.params.id);
@@ -101,7 +250,7 @@ router.patch('/users/:id/toggle', adminAuthMiddleware, (req, res) => {
 // ═══════════════════════════════════════════════════════════
 // PATCH /api/admin/users/:id/role  – change user role
 // ═══════════════════════════════════════════════════════════
-router.patch('/users/:id/role', adminAuthMiddleware, (req, res) => {
+router.patch('/users/:id/role', requireAdmin, (req, res) => {
   try {
     const allowed = ['user', 'moderator', 'admin'];
     let role = String(req.body?.role || '').trim().toLowerCase();
@@ -125,7 +274,7 @@ router.patch('/users/:id/role', adminAuthMiddleware, (req, res) => {
 // ═══════════════════════════════════════════════════════════
 // DELETE /api/admin/users/:id
 // ═══════════════════════════════════════════════════════════
-router.delete('/users/:id', adminAuthMiddleware, (req, res) => {
+router.delete('/users/:id', requireAdmin, (req, res) => {
   try {
     const db   = getDb();
     const user = db.prepare('SELECT id FROM users WHERE id=?').get(req.params.id);
@@ -135,32 +284,6 @@ router.delete('/users/:id', adminAuthMiddleware, (req, res) => {
     return res.json({ success: true, message: 'User deleted successfully.' });
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Failed to delete user.' });
-  }
-});
-
-// ═══════════════════════════════════════════════════════════
-// GET /api/admin/login-attempts
-// ═══════════════════════════════════════════════════════════
-router.get('/login-attempts', adminAuthMiddleware, (req, res) => {
-  try {
-    const db       = getDb();
-    const attempts = db.prepare('SELECT * FROM login_attempts ORDER BY attempted_at DESC LIMIT 100').all();
-    return res.json({ success: true, attempts });
-  } catch (err) {
-    return res.status(500).json({ success: false, message: 'Failed to retrieve login attempts.' });
-  }
-});
-
-// ═══════════════════════════════════════════════════════════
-// GET /api/admin/suspicious
-// ═══════════════════════════════════════════════════════════
-router.get('/suspicious', adminAuthMiddleware, (req, res) => {
-  try {
-    const db         = getDb();
-    const activities = db.prepare('SELECT * FROM suspicious_activities ORDER BY detected_at DESC LIMIT 100').all();
-    return res.json({ success: true, activities });
-  } catch (err) {
-    return res.status(500).json({ success: false, message: 'Failed to retrieve suspicious activities.' });
   }
 });
 

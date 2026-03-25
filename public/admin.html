@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard – SecureReg</title>
+  <title>Management Panel – SecureReg</title>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
-<body>
+<body class="admin-body">
 
 <!-- ═══════════════════════════════════════════════════════════
      DASHBOARD
@@ -16,7 +16,11 @@
   <!-- Header -->
   <header class="admin-header">
     <div class="admin-logo">
-      <span>Admin Dashboard</span>
+      <span class="admin-logo-mark">SR</span>
+      <div>
+        <p class="admin-logo-title">Control Center</p>
+        <p class="admin-logo-subtitle">SecureReg Operations</p>
+      </div>
     </div>
     <div class="admin-header-right">
       <span id="adminUserBadge" class="admin-user-badge"></span>
@@ -26,6 +30,8 @@
   </header>
 
   <main class="admin-content">
+
+
 
     <!-- Stats cards -->
     <div class="stats-grid">
@@ -154,6 +160,7 @@
   </main>
 </div>
 
+<script src="/js/clientUtils.js"></script>
 <script src="/js/session-manager.js"></script>
 <script src="/js/admin.js"></script>
 </body>

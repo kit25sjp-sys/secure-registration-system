@@ -6,7 +6,7 @@
   <title>Dashboard – SecureReg</title>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
-<body>
+<body class="dashboard-body">
 
 <nav class="top-nav">
   <div class="top-nav-logo">
@@ -18,187 +18,124 @@
   </div>
 </nav>
 
-<div class="page-wrapper dashboard-wrapper content-shell">
+<div class="dashboard-container">
 
-  <!-- ══════════════════════════════════════════════════
-       ROLE INFO — Displayed at the very top
-  ══════════════════════════════════════════════════ -->
-  
-  <!-- ── Role Access Panel (shows based on user role) ── -->
+  <!-- Role Access Panel (shows based on user role) -->
   <div id="roleAccessSection" class="dashboard-role-section" style="display:none"></div>
 
-  <!-- ══════════════════════════════════════════════════
-       ROW 1 — Welcome  +  Password Security
-  ══════════════════════════════════════════════════ -->
-
-  <!-- ── Welcome Card ─────────────────────────────── -->
-  <div class="dashboard-card">
-    <div class="dashboard-avatar" id="avatarCircle">?</div>
-    <h1 class="dashboard-welcome" id="welcomeHeading">Welcome!</h1>
-    <p class="dashboard-email" id="dashboardEmail">Loading…</p>
-
-    <div class="dashboard-badges">
-      <span class="badge badge-success">Account Verified</span>
-      <span class="badge" id="userRoleBadge">Loading…</span>
+  <!-- Main Content: Two Column Layout -->
+  <div class="dashboard-grid">
+    
+    <!-- LEFT: User Account Info -->
+    <div class="dashboard-card-modern">
+      <div class="dashboard-avatar-large" id="avatarCircle">?</div>
+      <h1 class="dashboard-welcome" id="welcomeHeading">Welcome!</h1>
+      <p class="dashboard-email" id="dashboardEmail">Loading…</p>
+      
+      <div class="dashboard-badges-container">
+        <span class="badge-modern badge-verified">Account Verified</span>
+        <span class="badge-modern" id="userRoleBadge">Loading…</span>
+      </div>
     </div>
+
+    <!-- RIGHT: Account Management -->
+    <div class="dashboard-card-modern account-management-card">
+      <h2 class="account-title">Account Settings</h2>
+      <p class="account-subtitle">Manage your account information and security preferences.</p>
+      
+      <div class="account-info-section">
+        
+        <!-- Username -->
+        <div class="account-info-item">
+          <div class="info-header">
+            <span class="info-label">Username</span>
+            <button class="btn-icon-edit" id="btnEditUsername" title="Edit username">✏️</button>
+          </div>
+          <span class="info-value" id="displayUsername">—</span>
+        </div>
+
+        <!-- Email (Read-only) -->
+        <div class="account-info-item">
+          <div class="info-header">
+            <span class="info-label">Email Address</span>
+            <span class="badge-badge-small">Verified</span>
+          </div>
+          <span class="info-value" id="displayEmail">—</span>
+        </div>
+
+        <!-- Phone Number -->
+        <div class="account-info-item">
+          <div class="info-header">
+            <span class="info-label">Phone Number</span>
+            <button class="btn-icon-edit" id="btnEditPhone" title="Edit phone number">✏️</button>
+          </div>
+          <span class="info-value" id="displayPhone">Not provided</span>
+        </div>
+
+        <!-- Account Created -->
+        <div class="account-info-item">
+          <span class="info-label">Account Created</span>
+          <span class="info-value info-secondary" id="displayCreated">—</span>
+        </div>
+
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="account-actions">
+        <a href="/change-password" class="btn-account-action btn-primary-action">
+          <span>🔒</span> Change Password
+        </a>
+        <button id="btnLogoutAccount" class="btn-account-action btn-logout-action">
+          <span>⏏️</span> Logout
+        </button>
+      </div>
+    </div>
+
   </div>
 
-  <!-- ── Password Security Card ───────────────────── -->
-  <div class="dashboard-card security-card">
-    <div class="security-icon"></div>
-    <h2 class="security-title">Password Security</h2>
-    <p class="security-message">
-      Your password is <strong>securely protected</strong>. It is stored using
-      <strong>bcrypt</strong> hashing — your actual password is
-      <em>never visible</em> to anyone, including administrators.
-    </p>
+</div>
 
-    <!-- Password preview row (always masked, never reveals real password) -->
-    <div class="security-detail-row pw-preview-row">
-      <span class="security-detail-label">Your password</span>
-      <div class="pw-preview-field">
-        <span class="pw-dots" id="pwDots">••••••••••••</span>
-        <span class="pw-locked-badge">Secured</span>
+<!-- Edit Username Modal -->
+<div id="editUsernameModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title">Change Username</h2>
+      <button class="modal-close-btn" onclick="closeModal('editUsernameModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">New Username</label>
+        <input type="text" id="editUsernameInput" class="form-input" placeholder="Enter new username" />
+        <div id="editUsernameError" class="form-error"></div>
       </div>
     </div>
-
-    <div class="security-detail-row">
-      <span class="security-detail-label">Algorithm</span>
-      <code class="security-hash-preview">bcrypt &middot; cost factor 12</code>
-    </div>
-    <div class="security-detail-row">
-      <span class="security-detail-label">Reuse policy</span>
-      <code class="security-hash-preview">Last 5 passwords blocked</code>
-    </div>
-    <div class="security-detail-row">
-      <span class="security-detail-label">Last changed</span>
-      <code class="security-hash-preview" id="lastChangedLabel">Loading…</code>
-    </div>
-
-    <a href="/change-password" class="btn btn-primary dashboard-change-btn">
-      Change Password
-    </a>
-  </div>
-
-</div><!-- end row-1 wrapper -->
-
-<!-- ══════════════════════════════════════════════════
-     ROW 2 — Password Policy: what NOT to use
-══════════════════════════════════════════════════ -->
-<div class="policy-section">
-  <div class="policy-header">
-    <span class="policy-header-icon">&#128683;</span>
-    <div>
-      <h2 class="policy-title">Password Policy &amp; Forbidden Examples</h2>
-      <p class="policy-subtitle">The system will <strong>reject</strong> any password that matches these patterns. Do not use passwords like these.</p>
+    <div class="modal-footer">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal('editUsernameModal')">Cancel</button>
+      <button class="modal-btn modal-btn-save" onclick="saveUsername()">Save Changes</button>
     </div>
   </div>
+</div>
 
-  <div class="policy-grid">
-
-    <!-- Category 1 -->
-    <div class="policy-card policy-danger">
-      <div class="policy-card-head">
-        <span class="policy-card-icon">&#128274;</span>
-        <span class="policy-card-label">Common / default passwords</span>
-      </div>
-      <ul class="policy-examples">
-        <li><code>password</code></li>
-        <li><code>password123</code></li>
-        <li><code>admin123</code></li>
-        <li><code>123456789</code></li>
-        <li><code>iloveyou</code></li>
-        <li><code>welcome</code></li>
-      </ul>
-      <p class="policy-card-note">These appear in every leaked-credentials database and are tried first in any attack.</p>
+<!-- Edit Phone Modal -->
+<div id="editPhoneModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title">Change Phone Number</h2>
+      <button class="modal-close-btn" onclick="closeModal('editPhoneModal')">×</button>
     </div>
-
-    <!-- Category 2 -->
-    <div class="policy-card policy-warning">
-      <div class="policy-card-head">
-        <span class="policy-card-icon">&#9000;</span>
-        <span class="policy-card-label">Keyboard patterns &amp; sequences</span>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Phone Number</label>
+        <input type="tel" id="editPhoneInput" class="form-input" placeholder="+1 (555) 123-4567" />
+        <div id="editPhoneError" class="form-error"></div>
       </div>
-      <ul class="policy-examples">
-        <li><code>qwerty</code></li>
-        <li><code>qwerty123</code></li>
-        <li><code>asdfgh</code></li>
-        <li><code>123456</code></li>
-        <li><code>abcdef</code></li>
-        <li><code>zxcvbn</code></li>
-      </ul>
-      <p class="policy-card-note">Keyboard walks and numeric runs are trivially guessable with automated tools.</p>
     </div>
-
-    <!-- Category 3 -->
-    <div class="policy-card policy-warning">
-      <div class="policy-card-head">
-        <span class="policy-card-icon">&#128101;</span>
-        <span class="policy-card-label">Personal / obvious words</span>
-      </div>
-      <ul class="policy-examples">
-        <li><code>yourname123</code></li>
-        <li><code>michael</code></li>
-        <li><code>baseball</code></li>
-        <li><code>superman</code></li>
-        <li><code>dragon</code></li>
-        <li><code>sunshine</code></li>
-      </ul>
-      <p class="policy-card-note">Dictionary words and names are broken instantly by dictionary attacks.</p>
+    <div class="modal-footer">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal('editPhoneModal')">Cancel</button>
+      <button class="modal-btn modal-btn-save" onclick="savePhone()">Save Changes</button>
     </div>
-
-    <!-- Category 4 -->
-    <div class="policy-card policy-danger">
-      <div class="policy-card-head">
-        <span class="policy-card-icon">&#128257;</span>
-        <span class="policy-card-label">Repeated characters</span>
-      </div>
-      <ul class="policy-examples">
-        <li><code>aaaaaaa</code></li>
-        <li><code>1111111</code></li>
-        <li><code>aabbcc</code></li>
-        <li><code>aaabbb</code></li>
-        <li><code>pppppp</code></li>
-        <li><code>000000</code></li>
-      </ul>
-      <p class="policy-card-note">Repeated characters drastically reduce entropy and fail strength checks.</p>
-    </div>
-
-    <!-- Category 5 – GOOD example -->
-    <div class="policy-card policy-success">
-      <div class="policy-card-head">
-        <span class="policy-card-icon">&#10003;</span>
-        <span class="policy-card-label">What a strong password looks like</span>
-      </div>
-      <ul class="policy-examples policy-examples-good">
-        <li><code>Tr0ub4dor&amp;3</code></li>
-        <li><code>P@ssw0rd!2026</code></li>
-        <li><code>X7#kLm!9qR</code></li>
-        <li><code>Secure#Rain42!</code></li>
-        <li><code>Cy8er$Vault#99</code></li>
-      </ul>
-      <p class="policy-card-note">Mix uppercase, lowercase, numbers &amp; symbols. Minimum 8 chars — 12+ recommended.</p>
-    </div>
-
-    <!-- Category 6 – Requirements summary -->
-    <div class="policy-card policy-info">
-      <div class="policy-card-head">
-        <span class="policy-card-icon">&#128221;</span>
-        <span class="policy-card-label">Password requirements</span>
-      </div>
-      <ul class="policy-req-list">
-        <li><span class="req-check">&#10003;</span> At least <strong>8 characters</strong> (12+ recommended)</li>
-        <li><span class="req-check">&#10003;</span> At least one <strong>uppercase</strong> letter (A–Z)</li>
-        <li><span class="req-check">&#10003;</span> At least one <strong>lowercase</strong> letter (a–z)</li>
-        <li><span class="req-check">&#10003;</span> At least one <strong>number</strong> (0–9)</li>
-        <li><span class="req-check">&#10003;</span> At least one <strong>special character</strong> (!@#$%…)</li>
-        <li><span class="req-x">&#10007;</span> Must <strong>not</strong> be a common/dictionary word</li>
-        <li><span class="req-x">&#10007;</span> Must <strong>not</strong> reuse any of your last 5 passwords</li>
-      </ul>
-    </div>
-
-  </div><!-- end policy-grid -->
-</div><!-- end policy-section -->
+  </div>
+</div>
 
 <script>
 /* ── Guard: redirect to login if not authenticated ─────── */
@@ -212,26 +149,37 @@
       return;
     }
 
-    const { username, email, role } = data.user;
+    const { username, email, role, created_at, phone_number } = data.user;
     document.getElementById('avatarCircle').textContent   = username.charAt(0).toUpperCase();
     document.getElementById('welcomeHeading').textContent = `Welcome back, ${username}!`;
     document.getElementById('dashboardEmail').textContent = email;
+    document.getElementById('displayUsername').textContent = username;
+    document.getElementById('displayEmail').textContent = email;
+    document.getElementById('displayPhone').textContent = phone_number || 'Not provided';
     document.title = `Dashboard – ${username}`;
+
+    // Format created date
+    if (created_at) {
+      try {
+        const createdDate = new Date(created_at.endsWith('Z') ? created_at : created_at + 'Z').toLocaleDateString();
+        document.getElementById('displayCreated').textContent = createdDate;
+      } catch (e) {
+        document.getElementById('displayCreated').textContent = created_at;
+      }
+    }
 
     /* Dynamic role badge */
     const roleBadge   = document.getElementById('userRoleBadge');
     const roleCfg     = {
-      admin:  { cls: 'badge badge-danger',   icon: '\uD83D\uDEE1\uFE0F', label: 'Administrator' },
-      moderator: { cls: 'badge badge-warning',  icon: '\u270F\uFE0F', label: 'Moderator / Manager' },
-      editor: { cls: 'badge badge-warning',  icon: '\u270F\uFE0F',       label: 'Moderator / Manager' },
-      user:   { cls: 'badge badge-info',     icon: '\uD83D\uDC64',       label: 'Registered User' },
+      admin:      { cls: 'badge-modern badge-admin',    label: 'Administrator' },
+      moderator:  { cls: 'badge-modern badge-moderator',   label: 'Moderator / Manager' },
+      manager:    { cls: 'badge-modern badge-manager', label: 'Manager (View-Only)' },
+      editor:     { cls: 'badge-modern badge-moderator',   label: 'Moderator / Manager' },
+      user:       { cls: 'badge-modern badge-user',      label: 'Registered User' },
     };
     const rc = roleCfg[role] || roleCfg.user;
     roleBadge.className   = rc.cls;
-    roleBadge.textContent = `${rc.icon} ${rc.label}`;
-
-    /* Last-changed label */
-    document.getElementById('lastChangedLabel').textContent = 'Protected (last change date hidden for security)';
+    roleBadge.textContent = rc.label;
 
     /* Role-specific access panel */
     const accessSection = document.getElementById('roleAccessSection');
@@ -239,49 +187,151 @@
       accessSection.style.display = 'block';
       accessSection.innerHTML = `
         <div style="background:#fff0f0;border:1.5px solid #e74c3c;border-radius:10px;padding:16px 20px">
-          <p style="margin:0 0 10px;font-size:.92rem;font-weight:700;color:#c0392b">&#128737;&#65039; Admin (Super Admin)</p>
-          <p style="margin:0 0 12px;font-size:.84rem;color:#666">Full control over the system.</p>
-          <p style="margin:0 0 8px;font-size:.84rem;font-weight:700;color:#555">Permissions:</p>
-          <ul style="margin:0 0 14px 18px;padding:0;color:#666;font-size:.84rem;line-height:1.6">
-            <li>Create / edit / delete users</li>
-            <li>Assign roles</li>
-            <li>View all data (logs, reports, activity)</li>
-            <li>Manage system settings</li>
-            <li>Block / suspend accounts</li>
-          </ul>
-          <a href="/admin" class="btn btn-danger" style="text-decoration:none">&#9881;&#65039; Open Admin Panel</a>
+          <p style="margin:0 0 14px;font-size:.92rem;font-weight:700;color:#c0392b">⚙️ Management Panel</p>
+          <a href="/admin" class="btn btn-danger" style="text-decoration:none">⚙️ Open Admin Panel</a>
         </div>`;
     } else if (role === 'moderator' || role === 'editor') {
       accessSection.style.display = 'block';
       accessSection.innerHTML = `
         <div style="background:#fffbf0;border:1.5px solid #f39c12;border-radius:10px;padding:16px 20px">
-          <p style="margin:0 0 10px;font-size:.92rem;font-weight:700;color:#d68910">&#9999;&#65039; Moderator / Manager</p>
-          <p style="margin:0 0 12px;font-size:.84rem;color:#666">Controls users but not system-level settings.</p>
-          <p style="margin:0 0 8px;font-size:.84rem;font-weight:700;color:#555">Permissions:</p>
-          <ul style="margin:0 0 14px 18px;padding:0;color:#666;font-size:.84rem;line-height:1.6">
-            <li>Approve or reject user registrations</li>
-            <li>Edit user details</li>
-            <li>Monitor activity</li>
-            <li>Handle reports or complaints</li>
-          </ul>
-          <a href="/editor" class="btn btn-warning" style="text-decoration:none">&#9999;&#65039; Open Editor Panel</a>
+          <p style="margin:0 0 14px;font-size:.92rem;font-weight:700;color:#d68910">⚙️ Management Panel</p>
+          <a href="/admin" class="btn btn-warning" style="text-decoration:none">⚙️ Open Admin Panel</a>
+        </div>`;
+    } else if (role === 'manager') {
+      accessSection.style.display = 'block';
+      accessSection.innerHTML = `
+        <div style="background:#f0f9ff;border:1.5px solid #3498db;border-radius:10px;padding:16px 20px">
+          <p style="margin:0 0 12px;font-size:.92rem;font-weight:700;color:#2980b9">👁️ View-Only Panel</p>
+          <p style="margin:0 0 14px;font-size:.84rem;color:#666">You can view data but not make changes.</p>
+          <a href="/admin" class="btn btn-info" style="text-decoration:none">👁️ Open View Panel</a>
         </div>`;
     }
-    /* Registered users don't see a role panel */
 
   } catch {
     window.location.replace('/login');
   }
 })();
 
+/* ── Edit Username ────────────────────────────────────── */
+document.getElementById('btnEditUsername')?.addEventListener('click', () => {
+  const currentUsername = document.getElementById('displayUsername').textContent;
+  document.getElementById('editUsernameInput').value = currentUsername;
+  document.getElementById('editUsernameError').textContent = '';
+  document.getElementById('editUsernameModal').classList.add('active');
+  document.getElementById('editUsernameInput').focus();
+});
+
+/* ── Edit Phone ────────────────────────────────────── */
+document.getElementById('btnEditPhone')?.addEventListener('click', () => {
+  const currentPhone = document.getElementById('displayPhone').textContent;
+  document.getElementById('editPhoneInput').value = currentPhone === 'Not provided' ? '' : currentPhone;
+  document.getElementById('editPhoneError').textContent = '';
+  document.getElementById('editPhoneModal').classList.add('active');
+  document.getElementById('editPhoneInput').focus();
+});
+
+/* ── Modal Functions ────────────────────────────────────── */
+function closeModal(modalId) {
+  document.getElementById(modalId).classList.remove('active');
+}
+
+async function saveUsername() {
+  const newUsername = document.getElementById('editUsernameInput').value.trim();
+  const errorEl = document.getElementById('editUsernameError');
+  errorEl.textContent = '';
+
+  if (!newUsername) {
+    errorEl.textContent = 'Username is required';
+    return;
+  }
+
+  if (newUsername.length < 3 || newUsername.length > 30) {
+    errorEl.textContent = 'Username must be 3-30 characters long';
+    return;
+  }
+
+  if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+    errorEl.textContent = 'Username can only contain letters, numbers, and underscores';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/username', {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: newUsername })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('displayUsername').textContent = newUsername;
+      document.getElementById('avatarCircle').textContent = newUsername.charAt(0).toUpperCase();
+      document.getElementById('welcomeHeading').textContent = `Welcome back, ${newUsername}!`;
+      closeModal('editUsernameModal');
+      showAlert('Username updated successfully!', 'success');
+    } else {
+      errorEl.textContent = data.message || 'Failed to update username';
+    }
+  } catch (err) {
+    errorEl.textContent = 'An error occurred. Please try again.';
+    console.error(err);
+  }
+}
+
+async function savePhone() {
+  const newPhone = document.getElementById('editPhoneInput').value.trim();
+  const errorEl = document.getElementById('editPhoneError');
+  errorEl.textContent = '';
+
+  if (newPhone && newPhone.length < 10) {
+    errorEl.textContent = 'Phone number must be at least 10 digits';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/phone', {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: newPhone || null })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      const displayPhone = newPhone || 'Not provided';
+      document.getElementById('displayPhone').textContent = displayPhone;
+      closeModal('editPhoneModal');
+      showAlert('Phone number updated successfully!', 'success');
+    } else {
+      errorEl.textContent = data.message || 'Failed to update phone number';
+    }
+  } catch (err) {
+    errorEl.textContent = 'An error occurred. Please try again.';
+    console.error(err);
+  }
+}
+
+/* ── Close modal on overlay click ────────────────────────────────────── */
+document.getElementById('editUsernameModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'editUsernameModal') closeModal('editUsernameModal');
+});
+
+document.getElementById('editPhoneModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'editPhoneModal') closeModal('editPhoneModal');
+});
+
 /* ── Logout ────────────────────────────────────────────── */
-document.getElementById('logoutBtn').addEventListener('click', async () => {
+document.getElementById('logoutBtn')?.addEventListener('click', logout);
+document.getElementById('btnLogoutAccount')?.addEventListener('click', logout);
+
+async function logout() {
   try {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
   } finally {
     window.location.replace('/login');
   }
-});
+}
 </script>
 
 <script src="/js/session-manager.js"></script>

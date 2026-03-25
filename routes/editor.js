@@ -1,38 +1,20 @@
 const express = require('express');
 const router  = express.Router();
 const { getDb } = require('../database/db');
+const { 
+  requireRole, 
+  getUsers, 
+  ROLES 
+} = require('../utils/accessControl');
 
-// ═══════════════════════════════════════════════════════════
-// Session-based role guard  (editor OR admin)
-// ═══════════════════════════════════════════════════════════
-function requireEditor(req, res, next) {
-  if (!req.session || !req.session.userId) {
-    return res.status(401).json({ success: false, message: 'Not authenticated.' });
-  }
-  try {
-    const db   = getDb();
-    const user = db.prepare('SELECT role, is_active FROM users WHERE id = ?').get(req.session.userId);
-    if (!user || !user.is_active) {
-      return res.status(401).json({ success: false, message: 'Account not found or inactive.' });
-    }
-    if (user.role !== 'moderator' && user.role !== 'editor' && user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Access denied. Moderator/Admin role required.' });
-    }
-    req.userRole = user.role;
-    next();
-  } catch (err) {
-    console.error('Editor auth error:', err);
-    return res.status(500).json({ success: false, message: 'Authentication check failed.' });
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// GET /api/editor/stats
-// ═══════════════════════════════════════════════════════════
-router.get('/stats', requireEditor, (req, res) => {
+// ═══════════════════════════════════════════════════════════════════════════════
+// GET /api/editor/stats  –  Dashboard stats (moderator view-only)
+// ═══════════════════════════════════════════════════════════════════════════════
+router.get('/stats', requireRole(ROLES.MODERATOR), (req, res) => {
   try {
     const db = getDb();
     const q  = (sql) => db.prepare(sql).get();
+    
     return res.json({
       success: true,
       stats: {
@@ -48,17 +30,16 @@ router.get('/stats', requireEditor, (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════
-// GET /api/editor/users  –  read-only, no password hashes
-// ═══════════════════════════════════════════════════════════
-router.get('/users', requireEditor, (req, res) => {
+// ═══════════════════════════════════════════════════════════════════════════════
+// GET /api/editor/users  –  List users (read-only, no password hashes)
+// ═══════════════════════════════════════════════════════════════════════════════
+router.get('/users', requireRole(ROLES.MODERATOR), (req, res) => {
   try {
-    const db    = getDb();
-    const users = db.prepare(`
-      SELECT id, username, email, role, is_verified, is_active, created_at, last_login
-      FROM users ORDER BY created_at DESC
-    `).all();
-    return res.json({ success: true, users });
+    const result = getUsers(ROLES.MODERATOR);
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+    return res.json(result);
   } catch (err) {
     console.error('Editor users error:', err);
     return res.status(500).json({ success: false, message: 'Failed to retrieve users.' });

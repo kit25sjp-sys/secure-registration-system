@@ -87,14 +87,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /* ── 2. Password-toggle eye buttons ────────────────── */
   document.querySelectorAll('.toggle-password').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const input = document.getElementById(btn.getAttribute('data-target'));
       const eye   = document.getElementById(btn.getAttribute('data-target') + 'Eye');
       if (!input) return;
-      const show   = input.type === 'password';
-      input.type   = show ? 'text' : 'password';
-      if (eye) eye.innerHTML = makeEyeSVG(show);
-      btn.classList.toggle('active', show);
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      if (eye) eye.innerHTML = makeEyeSVG(isPassword);
+      btn.classList.toggle('active', isPassword);
     });
   });
 
@@ -111,7 +113,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       const d = await r.json();
       if (d.success) updateStrengthUI(d.score, d.checks);
-    } catch { // silent }
+    } catch (err) {
+      console.error('Strength check error:', err);
+    }
   }, 300);
 
   newPassInput.addEventListener('input', () => {

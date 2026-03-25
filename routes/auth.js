@@ -21,9 +21,7 @@ function generateOTP() {
   return crypto.randomInt(100000, 999999).toString();
 }
 
-// ═══════════════════════════════════════════════════════════
 // Helper – verify Google reCAPTCHA token
-// ═══════════════════════════════════════════════════════════
 async function verifyRecaptcha(token) {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY || '6Lc8zpQsAAAAAB6bhl9oSoIlKmGPdadWjpoHlRgQ';
   if (!secretKey) {
@@ -255,7 +253,14 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
 
     // ── Compare OTP against hash ––
     console.log('🔍 [OTP] Comparing OTP hash for user:', user.id);
-    const match = await bcrypt.compare(otp, user.otp_hash);
+    
+    // DEVELOPMENT MODE: Allow '000000' as bypass OTP when DEV_MODE is enabled
+    const isDevelopment = process.env.DEV_MODE === 'true' && otp === '000000';
+    const match = isDevelopment || (await bcrypt.compare(otp, user.otp_hash));
+    
+    if (isDevelopment) {
+      console.log('✅ [DEV MODE] Development bypass OTP accepted');
+    }
     
     if (!match) {
       console.log('❌ [OTP] OTP mismatch for user:', user.id, 'attempt:', user.otp_attempts + 1);
@@ -292,7 +297,8 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
     req.session.email    = user.email;
     req.session.role     = user.role || 'user';
 
-    console.log('💾 [OTP] Saving session for user:', user.id);
+    console.log('💾 [OTP] Session data set for user:', user.id, '| Role:', req.session.role);
+    
     // Save session before responding
     req.session.save((err) => {
       if (err) {
@@ -300,7 +306,13 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
         return res.status(500).json({ success: false, message: 'Session save failed.' });
       }
       
-      console.log('✅ [OTP] Session saved, sending response');
+      console.log('✅ [OTP] Session saved successfully');
+      console.log('📊 Session details:', { 
+        userId: req.session.userId, 
+        role: req.session.role, 
+        sessionID: req.sessionID 
+      });
+      
       return res.json({ 
         success: true, 
         message: 'OTP verified! You are now logged in.',
@@ -454,7 +466,7 @@ router.get('/me', (req, res) => {
   }
   try {
     const db   = getDb();
-    const user = db.prepare('SELECT id, username, email, role, is_active FROM users WHERE id = ?').get(req.session.userId);
+    const user = db.prepare('SELECT id, username, email, role, is_active, phone_number, created_at FROM users WHERE id = ?').get(req.session.userId);
     if (!user) {
       req.session.destroy(() => {});
       return res.status(401).json({ success: false, message: 'Account not found.' });
@@ -468,10 +480,12 @@ router.get('/me', (req, res) => {
     return res.json({
       success: true,
       user: {
-        id:       user.id,
-        username: user.username,
-        email:    user.email,
-        role:     user.role || 'user',
+        id:           user.id,
+        username:     user.username,
+        email:        user.email,
+        role:         user.role || 'user',
+        phone_number: user.phone_number || null,
+        created_at:   user.created_at,
       },
     });
   } catch (err) {
@@ -807,6 +821,170 @@ router.post('/reset-password', async (req, res) => {
   } catch (err) {
     console.error('🔥 [Reset Password] Error:', err);
     return res.status(500).json({ success: false, message: 'Password reset failed.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// DEV ONLY: GET /api/auth/dev-otp - Get OTP for development/testing
+// Requires DEV_MODE enabled in .env  
+// NEVER expose this in production!
+// ═══════════════════════════════════════════════════════════
+router.get('/dev-otp', (req, res) => {
+  if (process.env.DEV_MODE !== 'true') {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Development mode is not enabled.' 
+    });
+  }
+
+  try {
+    const email = req.query.email || '';
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email is required. Usage: /api/auth/dev-otp?email=user@example.com' 
+      });
+    }
+
+    const db = getDb();
+    const user = db.prepare('SELECT id, username, otp_hash, otp_expires FROM users WHERE email = ?')
+      .get(email.toLowerCase());
+
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found.' 
+      });
+    }
+
+    if (!user.otp_hash) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No active OTP for this user. Please register first.' 
+      });
+    }
+
+    console.log(`🔧 [DEV] OTP requested for ${email}`);
+    
+    return res.json({ 
+      success: true, 
+      message: '⚠️ DEVELOPMENT MODE - Use OTP "000000" to bypass verification, or check browser console for actual OTP',
+      devInfo: {
+        email,
+        username: user.username,
+        instruction: 'Enter "000000" as the 6-digit code (requires DEV_MODE=true)',
+        otpStatus: new Date(user.otp_expires) > new Date() ? 'ACTIVE' : 'EXPIRED'
+      }
+    });
+  } catch (err) {
+    console.error('🔥 [DEV-OTP] Error:', err);
+    return res.status(500).json({ success: false, message: 'Error retrieving OTP info.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// DEBUG: Session debug endpoint
+// ═══════════════════════════════════════════════════════════
+router.get('/debug/session', (req, res) => {
+  console.log('🔍 [DEBUG] Session check:', {
+    hasSession: !!req.session,
+    userId: req.session?.userId,
+    username: req.session?.username,
+    email: req.session?.email,
+    role: req.session?.role,
+    sessionId: req.sessionID,
+    cookie: req.headers.cookie
+  });
+  
+  res.json({
+    success: true,
+    session: {
+      hasSession: !!req.session,
+      userId: req.session?.userId || null,
+      username: req.session?.username || null,
+      email: req.session?.email || null,
+      role: req.session?.role || null,
+      sessionId: req.sessionID,
+    },
+    debug: {
+      cookiePresent: !!req.headers.cookie,
+      message: req.session?.userId ? 'Session is active' : 'No active session'
+    }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// PATCH /api/auth/username  –  Update username
+// ═══════════════════════════════════════════════════════════
+router.patch('/username', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ success: false, message: 'Not authenticated.' });
+  }
+
+  try {
+    const newUsername = String(req.body.username || '').trim().substring(0, 100);
+
+    // Validation
+    if (!newUsername) {
+      return res.status(400).json({ success: false, message: 'Username is required.' });
+    }
+
+    if (newUsername.length < 3 || newUsername.length > 30) {
+      return res.status(400).json({ success: false, message: 'Username must be 3-30 characters long.' });
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+      return res.status(400).json({ success: false, message: 'Username can only contain letters, numbers, and underscores.' });
+    }
+
+    const db = getDb();
+    
+    // Check if username is already taken
+    const userExists = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(newUsername, req.session.userId);
+    if (userExists) {
+      return res.status(409).json({ success: false, message: 'Username already taken. Please choose another.' });
+    }
+
+    // Update username
+    db.prepare('UPDATE users SET username = ? WHERE id = ?').run(newUsername, req.session.userId);
+    
+    // Update session
+    req.session.username = newUsername;
+
+    console.log(`✅ [Update Username] User ${req.session.userId} changed username to: ${newUsername}`);
+    return res.json({ success: true, message: 'Username updated successfully.', username: newUsername });
+  } catch (err) {
+    console.error('🔥 [Update Username] Error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to update username.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// PATCH /api/auth/phone  –  Update phone number
+// ═══════════════════════════════════════════════════════════
+router.patch('/phone', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ success: false, message: 'Not authenticated.' });
+  }
+
+  try {
+    let newPhone = req.body.phone ? String(req.body.phone).trim().substring(0, 20) : null;
+
+    // Validation - phone is optional, but if provided should be at least 10 digits
+    if (newPhone && newPhone.length < 10) {
+      return res.status(400).json({ success: false, message: 'Phone number must be at least 10 digits.' });
+    }
+
+    const db = getDb();
+
+    // Update phone number
+    db.prepare('UPDATE users SET phone_number = ? WHERE id = ?').run(newPhone, req.session.userId);
+
+    console.log(`✅ [Update Phone] User ${req.session.userId} updated phone number`);
+    return res.json({ success: true, message: 'Phone number updated successfully.', phone: newPhone || 'Not provided' });
+  } catch (err) {
+    console.error('🔥 [Update Phone] Error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to update phone number.' });
   }
 });
 

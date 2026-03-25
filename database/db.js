@@ -121,7 +121,8 @@ async function initDatabase() {
       ip_address          TEXT,
       failed_attempts     INTEGER DEFAULT 0,
       locked_until        TEXT,
-      role                TEXT    DEFAULT 'user'
+      role                TEXT    DEFAULT 'user',
+      is_master_admin     INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS password_history (
@@ -165,17 +166,29 @@ async function initDatabase() {
     if (!colNames.includes('otp_expires'))  { _db.run('ALTER TABLE users ADD COLUMN otp_expires TEXT'); }
     if (!colNames.includes('otp_attempts')) { _db.run('ALTER TABLE users ADD COLUMN otp_attempts INTEGER DEFAULT 0'); }
     if (!colNames.includes('role'))         { _db.run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'"); }
+    if (!colNames.includes('is_master_admin')) { _db.run('ALTER TABLE users ADD COLUMN is_master_admin INTEGER DEFAULT 0'); }
+    if (!colNames.includes('phone_number')) { _db.run('ALTER TABLE users ADD COLUMN phone_number TEXT'); }
   }
 
-  // 6. Seed default admin account
-  const adminExists = dbProxy.prepare('SELECT id FROM admins WHERE username = ?').get('admin');
-  if (!adminExists) {
+  // 6. Seed default master admin account (non-deletable, non-modifiable)
+  const masterAdminExists = dbProxy.prepare('SELECT id FROM users WHERE email = ?').get('admin@gmail.com');
+  if (!masterAdminExists) {
+    const hash = bcrypt.hashSync('Admin12345@', 12);
+    dbProxy.prepare(
+      'INSERT INTO users (username, email, password_hash, role, is_verified, is_active, is_master_admin) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run('admin', 'admin@gmail.com', hash, 'admin', 1, 1, 1);
+    console.log('✅  Master Admin created  →  admin@gmail.com / Admin12345@');
+  }
+
+  // 7. Keep backward compatibility: also seed old admins table if needed for legacy logins
+  const legacyAdminExists = dbProxy.prepare('SELECT id FROM admins WHERE username = ?').get('admin');
+  if (!legacyAdminExists && _db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='admins'").length > 0) {
     const hash = bcrypt.hashSync('Admin@123456', 12);
     dbProxy.prepare('INSERT INTO admins (username, password_hash) VALUES (?, ?)').run('admin', hash);
-    console.log('✅  Default admin created  →  admin / Admin@123456');
+    console.log('✅  Legacy admin table seeded (backward compatibility)');
   }
 
-  // 7. Flush to disk
+  // 8. Flush to disk
   _save();
   console.log('✅  Database ready (sql.js / WebAssembly SQLite)');
 }

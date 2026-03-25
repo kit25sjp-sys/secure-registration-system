@@ -44,6 +44,28 @@ function checkStrength(password) {
 }
 
 /* ────────────────────────────────────────────────────────
+   Field validation helpers (register-specific)
+──────────────────────────────────────────────────────── */
+function setError(field, msg) {
+  const el    = document.getElementById(field + 'Input');
+  const errEl = document.getElementById(field + 'Error');
+  if (el)    { el.classList.add('error'); el.classList.remove('success'); }
+  if (errEl) errEl.textContent = msg;
+}
+function setSuccess(field) {
+  const el    = document.getElementById(field + 'Input');
+  const errEl = document.getElementById(field + 'Error');
+  if (el)    { el.classList.remove('error'); el.classList.add('success'); }
+  if (errEl) errEl.textContent = '';
+}
+function clearError(field) {
+  const el    = document.getElementById(field + 'Input');
+  const errEl = document.getElementById(field + 'Error');
+  if (el)    { el.classList.remove('error', 'success'); }
+  if (errEl) errEl.textContent = '';
+}
+
+/* ────────────────────────────────────────────────────────
    Strength meter UI
 ──────────────────────────────────────────────────────── */
 function updateStrengthUI(password) {
@@ -96,71 +118,13 @@ function updateStrengthUI(password) {
 /* ────────────────────────────────────────────────────────
    Show / hide password
 ──────────────────────────────────────────────────────── */
-function _makeEyeSVG(crossed) {
-  const base = 'viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
-  if (!crossed) {
-    return '<svg ' + base + '><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-  }
-  return '<svg ' + base + '><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
-}
 
-function _wireToggleButtons() {
-  document.querySelectorAll('.toggle-password').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var inputId = btn.getAttribute('data-target');
-      var input   = document.getElementById(inputId);
-      var eye     = document.getElementById(inputId + 'Eye');
-      if (!input) return;
-      var show = input.type === 'password';
-      input.type    = show ? 'text' : 'password';
-      if (eye) eye.innerHTML = _makeEyeSVG(show);
-      btn.classList.toggle('active', show);
-    });
-  });
-}
-
-/* ────────────────────────────────────────────────────────
-   Alert helpers
-──────────────────────────────────────────────────────── */
-function showAlert(msg, type = 'error') {
-  const c = document.getElementById('alertContainer');
-  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-  c.innerHTML = `<div class="alert alert-${type}"><span>${icons[type] || 'ℹ️'}</span><div>${msg}</div></div>`;
-  c.classList.remove('hidden');
-  c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-function hideAlert() {
-  const c = document.getElementById('alertContainer');
-  c.classList.add('hidden'); c.innerHTML = '';
-}
-
-/* ────────────────────────────────────────────────────────
-   Field validation helpers
-──────────────────────────────────────────────────────── */
-function setError(field, msg) {
-  const el    = document.getElementById(field + 'Input');
-  const errEl = document.getElementById(field + 'Error');
-  if (el)    { el.classList.add('error'); el.classList.remove('success'); }
-  if (errEl) errEl.textContent = msg;
-}
-function setSuccess(field) {
-  const el    = document.getElementById(field + 'Input');
-  const errEl = document.getElementById(field + 'Error');
-  if (el)    { el.classList.remove('error'); el.classList.add('success'); }
-  if (errEl) errEl.textContent = '';
-}
-function clearError(field) {
-  const el    = document.getElementById(field + 'Input');
-  const errEl = document.getElementById(field + 'Error');
-  if (el)    { el.classList.remove('error', 'success'); }
-  if (errEl) errEl.textContent = '';
-}
 
 /* ────────────────────────────────────────────────────────
    DOMContentLoaded
 ──────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  _wireToggleButtons();
+  setupPasswordToggles();  // Use shared utility from clientUtils.js
 
   const usernameInput        = document.getElementById('usernameInput');
   const emailInput           = document.getElementById('emailInput');

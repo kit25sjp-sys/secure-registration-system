@@ -33,10 +33,10 @@ async function fetchCurrentUser() {
   try {
     const resp = await fetch('/api/auth/me', { credentials: 'include' });
     const data = await resp.json();
-    if (data.user && data.user.role === 'admin') {
+    if (data.user && (data.user.role === 'admin' || data.user.role === 'moderator' || data.user.role === 'manager')) {
       document.getElementById('adminUserBadge').textContent = data.user.username;
     } else {
-      // Not admin, redirect to login
+      // Not authorized, redirect to login
       window.location.href = '/login';
     }
   } catch (err) {

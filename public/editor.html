@@ -19,9 +19,7 @@
   </div>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════════
-     Header card
-═══════════════════════════════════════════════════════ -->
+<!-- Header card-->
 <div class="page-wrapper dashboard-wrapper content-shell">
   <div class="dashboard-card section-card" style="grid-column:1/-1;width:100%;max-width:100%">
     <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
@@ -44,9 +42,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     Stats row
-═══════════════════════════════════════════════════════ -->
+<!--Stats row -->
 <div class="stats-grid content-shell" style="margin-bottom:24px">
   <div class="stat-card c-primary">
     <span class="stat-value" id="eStat-total">—</span>
@@ -66,9 +62,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     Users table  (read-only)
-═══════════════════════════════════════════════════════ -->
+<!--Users table  (read-only) -->
 <div class="content-shell" style="margin-bottom:48px">
   <div class="table-card">
     <div class="table-card-header">
@@ -145,7 +139,7 @@
   }
 })();
 
-/* ── Stats ─────────────────────────────────────────────── */
+/* ── Stats  */
 async function loadStats() {
   try {
     const res  = await fetch('/api/editor/stats', { credentials: 'include' });
@@ -159,7 +153,7 @@ async function loadStats() {
   } catch { /* silent */ }
 }
 
-/* ── Users table ────────────────────────────────────────── */
+// Users table  //
 let editorUsers = [];
 
 const ROLE_BADGE = {
@@ -216,7 +210,7 @@ document.getElementById('editorSearch').addEventListener('input', (e) => {
     : editorUsers);
 });
 
-/* ── Logout ─────────────────────────────────────────────── */
+// ── Logout  //
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); }
   finally { window.location.replace('/login'); }

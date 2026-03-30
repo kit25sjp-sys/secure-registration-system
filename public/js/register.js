@@ -1,4 +1,4 @@
-// ══════════════════════════════════════════════════════════════
+// 
 // register.js  –  Registration page JavaScript
 // Handles: real-time validation, password strength meter,
 //          CAPTCHA, and form submission.

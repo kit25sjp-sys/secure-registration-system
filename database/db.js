@@ -171,7 +171,7 @@ async function initDatabase() {
   }
 
   // 6. Seed default master admin account (non-deletable, non-modifiable)
-  const masterAdminExists = dbProxy.prepare('SELECT id FROM users WHERE email = ?').get('admin@gmail.com');
+  const masterAdminExists = dbProxy.prepare('SELECT id FROM users WHERE username = ?').get('admin');
   if (!masterAdminExists) {
     const hash = bcrypt.hashSync('Admin12345@', 12);
     dbProxy.prepare(

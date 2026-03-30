@@ -78,6 +78,23 @@ system/
     js/*.js
 ```
 
+## 🔐 Security Features Implementation
+
+| Feature | Code |
+|---------|------|
+| [Password-Based Authentication](routes/auth.js) | [routes/auth.js](routes/auth.js), [utils/passwordUtils.js](utils/passwordUtils.js) |
+| [Multi-Factor Authentication (OTP)](routes/auth.js) | [routes/auth.js](routes/auth.js), [utils/emailService.js](utils/emailService.js) |
+| [Session Management and Security](server.js) | [server.js](server.js) |
+| [Role-Based Access Control (RBAC)](middleware/adminAuth.js) | [middleware/adminAuth.js](middleware/adminAuth.js), [utils/accessControl.js](utils/accessControl.js) |
+| [Password Hashing (bcrypt)](utils/passwordUtils.js) | [utils/passwordUtils.js](utils/passwordUtils.js), [routes/auth.js](routes/auth.js) |
+| [CAPTCHA Integration (Google reCAPTCHA)](routes/auth.js) | [routes/auth.js](routes/auth.js), [public/js/register.js](public/js/register.js) |
+| [Rate Limiting and Brute-Force Protection](middleware/rateLimiter.js) | [middleware/rateLimiter.js](middleware/rateLimiter.js), [server.js](server.js) |
+| [Account Lockout Policy](routes/auth.js) | [routes/auth.js](routes/auth.js), [database/db.js](database/db.js) |
+| [Input Validation and Sanitization](routes/auth.js) | [routes/auth.js](routes/auth.js), [routes/admin.js](routes/admin.js) |
+| [SQL Injection Prevention](database/db.js) | [database/db.js](database/db.js) |
+| [Cross-Site Request Forgery (CSRF) Protection](server.js) | [server.js](server.js) |
+| [Secure Communication (HTTPS)](server.js) | [server.js](server.js) |
+
 ## Quick Start
 
 1. Install dependencies
